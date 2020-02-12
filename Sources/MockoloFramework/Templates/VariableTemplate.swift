@@ -66,16 +66,16 @@ func applyRxVariableTemplate(name: String,
         let typeParamStr = typeName[range.upperBound..<lastIdx]
         
         let underlyingSubjectName = "\(name)\(String.subjectSuffix)"
-        let whichSubject = "\(underlyingSubjectName)Kind"
+//        let whichSubject = "\(underlyingSubjectName)Kind"
         let underlyingSetCallCount = "\(underlyingSubjectName)\(String.setCallCountSuffix)"
         let publishSubjectName = underlyingSubjectName
         let publishSubjectType = "\(String.publishSubject)<\(typeParamStr)>"
-        let behaviorSubjectName = "\(name)\(String.behaviorSubject)"
-        let behaviorSubjectType = "\(String.behaviorSubject)<\(typeParamStr)>"
-        let replaySubjectName = "\(name)\(String.replaySubject)"
-        let replaySubjectType = "\(String.replaySubject)<\(typeParamStr)>"
-        let underlyingObservableName = "\(name)\(String.rx)\(String.subjectSuffix)"
-        let underlyingObservableType = typeName[typeName.startIndex..<typeName.index(after: lastIdx)]
+//        let behaviorSubjectName = "\(name)\(String.behaviorSubject)"
+//        let behaviorSubjectType = "\(String.behaviorSubject)<\(typeParamStr)>"
+//        let replaySubjectName = "\(name)\(String.replaySubject)"
+//        let replaySubjectType = "\(String.replaySubject)<\(typeParamStr)>"
+//        let underlyingObservableName = "\(name)\(String.rx)\(String.subjectSuffix)"
+//        let underlyingObservableType = typeName[typeName.startIndex..<typeName.index(after: lastIdx)]
         let acl = accessControlLevelDescription.isEmpty ? "" : accessControlLevelDescription + " "
         let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
         let setCallCountStmt = staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" : "\(underlyingSetCallCount) += 1"
@@ -84,37 +84,15 @@ func applyRxVariableTemplate(name: String,
         
         let template = """
         
-        \(staticStr)private var \(whichSubject) = 0
         \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
         \(acl)\(staticStr)var \(publishSubjectName) = \(publishSubjectType)() { didSet { \(setCallCountStmt) } }
-        \(acl)\(staticStr)var \(replaySubjectName) = \(replaySubjectType).create(bufferSize: 1) { didSet { \(setCallCountStmt) } }
-        \(acl)\(staticStr)var \(behaviorSubjectName): \(behaviorSubjectType)! { didSet { \(setCallCountStmt) } }
-        \(acl)\(staticStr)var \(underlyingObservableName): \(underlyingObservableType)! { didSet { \(setCallCountStmt) } }
         \(acl)\(staticStr)\(overrideStr)var \(name): \(typeName) {
             get {
-                if \(whichSubject) == 0 {
-                    return \(publishSubjectName)
-                } else if \(whichSubject) == 1 {
-                    return \(behaviorSubjectName)
-                } else if \(whichSubject) == 2 {
-                    return \(replaySubjectName)
-                } else {
-                    return \(underlyingObservableName)
-                }
+                return \(publishSubjectName)
             }
             set {
                 if let val = newValue as? \(publishSubjectType) {
                     \(publishSubjectName) = val
-                    \(whichSubject) = 0
-                } else if let val = newValue as? \(behaviorSubjectType) {
-                    \(behaviorSubjectName) = val
-                    \(whichSubject) = 1
-                } else if let val = newValue as? \(replaySubjectType) {
-                    \(replaySubjectName) = val
-                    \(whichSubject) = 2
-                } else {
-                    \(underlyingObservableName) = newValue
-                    \(whichSubject) = 3
                 }
             }
         }

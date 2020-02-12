@@ -150,6 +150,8 @@ public class ParserViaSourceKit: SourceParsing {
             var results = [Entity]()
             let topstructure = try Structure(path: path)
             for current in topstructure.substructures {
+                guard current.isProtocol else {continue}
+
                 let metadata = current.annotationMetadata(with: annotationData, in: content)
                 if let node = Entity.node(with: current, filepath: path, data: content, isPrivate: current.isPrivate, isFinal: current.isFinal, metadata: metadata, processed: false) {
                     results.append(node)

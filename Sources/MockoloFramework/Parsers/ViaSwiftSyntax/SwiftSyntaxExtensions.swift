@@ -529,19 +529,15 @@ extension AssociatedtypeDeclSyntax {
 
 extension TypealiasDeclSyntax {
     func model(with acl: String, overrides: [String: String]?, processed: Bool) -> Model {
-        // Get the inhertied type for an associated type if any
-//        var t = self.inheritanceClause?.typesDescription ?? ""
-//        t.append(self.genericWhereClause?.description ?? "")
-//
-//        return TypeAliasModel(name: self.identifier.text,
-//                              typeName: t,
-//                              acl: acl,
-//                              overrideTypes: overrides,
-//                              offset: self.offset,
-//                              length: self.length,
-//                              modelDescription: self.description,
-//                              processed: processed)
-        fatalError()
+        return TypeAliasModel(name: self.identifier.text,
+                              typeName: self.initializer?.value.description ?? "",
+                              acl: acl,
+                              overrideTypes: overrides,
+                              offset: self.offset,
+                              length: self.length,
+                              modelDescription: self.description,
+                              useDescription: true,
+                              processed: processed)
     }
 }
 
@@ -574,10 +570,10 @@ final class EntityVisitor: SyntaxVisitor {
                 entities.append(ent)
             }
         } else {
-            let metadata = node.annotationMetadata(with: annotation)
-            if let ent = Entity.node(with: node, isPrivate: node.isPrivate, isFinal: node.isFinal, metadata: metadata, processed: false) {
-                entities.append(ent)
-            }
+//            let metadata = node.annotationMetadata(with: annotation)
+//            if let ent = Entity.node(with: node, isPrivate: node.isPrivate, isFinal: node.isFinal, metadata: metadata, processed: false) {
+//                entities.append(ent)
+//            }
         }
         return .skipChildren
     }
