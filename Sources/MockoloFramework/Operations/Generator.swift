@@ -111,6 +111,12 @@ public func generate(sourceDirs: [String]?,
                             }
                         }
     }
+<<<<<<< HEAD
+=======
+    
+    deleteUnusedMocks(sourceDirs, annotatedProtocolMap, sema, mockgenQueue)
+    
+>>>>>>> a9fc852... use didSet for vars
     signpost_end(name: "Generate protocol map")
     let t2 = CFAbsoluteTimeGetCurrent()
     log("Took", t2-t1, level: .verbose)
@@ -172,3 +178,31 @@ public func generate(sourceDirs: [String]?,
     onCompletion(result)
 }
 
+
+
+func deleteUnusedMocks(_ dirs: [String]?,
+                       _ anMap:  [String: Entity],
+                       _ semaphore: DispatchSemaphore?,
+                       _ queue: DispatchQueue?) {
+
+    
+//    if let queue = queue, let dirs = dirs {
+//        let lock = NSLock()
+//        
+//        scanPaths(dirs) { filePath in
+//            _ = semaphore?.wait(timeout: DispatchTime.distantFuture)
+//            queue.async {
+//                self.generateASTs(filePath,
+//                                      exclusionSuffixes: exclusionSuffixes,
+//                                      annotationData: annotationData,
+//                                      lock: lock,
+//                                      completion: completion)
+//                semaphore?.signal()
+//            }
+//        }
+//        
+//        // Wait for queue to drain
+//        queue.sync(flags: .barrier) {}
+//    }
+    
+}

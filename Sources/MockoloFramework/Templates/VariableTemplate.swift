@@ -32,7 +32,8 @@ func applyVariableTemplate(name: String,
         underlyingType = type.underlyingType
     }
     let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
-    let setCallCountStmt = staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" : "\(underlyingSetCallCount) += 1"
+    let setCallCountStmt = //staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" :
+                            "\(underlyingSetCallCount) += 1"
 
     let overrideStr = shouldOverride ? "\(String.override) " : ""
     var acl = accessControlLevelDescription
@@ -44,13 +45,7 @@ func applyVariableTemplate(name: String,
     
     \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
     \(staticStr)var \(underlyingName): \(underlyingType) \(underlyingVarDefaultVal.isEmpty ? "" : "= \(underlyingVarDefaultVal)")
-    \(acl)\(staticStr)\(overrideStr)var \(name): \(type.typeName) {
-        get { return \(underlyingName) }
-        set {
-            \(underlyingName) = newValue
-            \(setCallCountStmt)
-        }
-    }
+    \(acl)\(staticStr)\(overrideStr)var \(name): \(type.typeName) { didSet { \(setCallCountStmt) } }
 """
     return template
 }
@@ -78,7 +73,8 @@ func applyRxVariableTemplate(name: String,
 //        let underlyingObservableType = typeName[typeName.startIndex..<typeName.index(after: lastIdx)]
         let acl = accessControlLevelDescription.isEmpty ? "" : accessControlLevelDescription + " "
         let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
-        let setCallCountStmt = staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" : "\(underlyingSetCallCount) += 1"
+        let setCallCountStmt = //staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" :
+                                "\(underlyingSetCallCount) += 1"
 
         let overrideStr = shouldOverride ? "\(String.override) " : ""
         
@@ -86,18 +82,10 @@ func applyRxVariableTemplate(name: String,
         
         \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
         \(acl)\(staticStr)var \(publishSubjectName) = \(publishSubjectType)() { didSet { \(setCallCountStmt) } }
-        \(acl)\(staticStr)\(overrideStr)var \(name): \(typeName) {
-            get {
-                return \(publishSubjectName)
-            }
-            set {
-                if let val = newValue as? \(publishSubjectType) {
-                    \(publishSubjectName) = val
-                }
-            }
-        }
+        \(acl)\(staticStr)\(overrideStr)var \(name): \(typeName) { didSet { \(publishSubjectName) = \(name) } }
     """
         return template
     }
     return nil
 }
+
