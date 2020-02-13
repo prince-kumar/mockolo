@@ -111,12 +111,9 @@ public func generate(sourceDirs: [String]?,
                             }
                         }
     }
-<<<<<<< HEAD
-=======
     
-    deleteUnusedMocks(sourceDirs, annotatedProtocolMap, sema, mockgenQueue)
+//    deleteUnusedMocks(sourceDirs, annotatedProtocolMap, sema, mockgenQueue)
     
->>>>>>> a9fc852... use didSet for vars
     signpost_end(name: "Generate protocol map")
     let t2 = CFAbsoluteTimeGetCurrent()
     log("Took", t2-t1, level: .verbose)
