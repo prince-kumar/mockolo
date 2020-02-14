@@ -321,7 +321,6 @@ extension ClassDeclSyntax: EntityNode {
 }
 
 extension VariableDeclSyntax {
-    
     func models(with acl: String, declType: DeclType, processed: Bool) -> [Model] {
         // Detect whether it's static
         var isStatic = false
@@ -541,11 +540,114 @@ extension TypealiasDeclSyntax {
     }
 }
 
+class SomeWriter: SyntaxRewriter {
+    let annotation = "@CreateMock"
+    var unusedlist = [String: String]()
+    var pass: Int = 0
+    var tmap = [Int: Int]()
+
+   override func visit(_ node: DeclModifierSyntax) -> Syntax {
+     return node
+   }
+
+    override func visit(_ node: ProtocolDeclSyntax) -> DeclSyntax {
+          if pass == 0 {
+              
+              if unusedlist[node.name] != nil {
+                  // unused!
+                  if let trivia = node.leadingTrivia {
+                      tmap[trivia.startIndex] = trivia.endIndex
+                  } else {
+                      print("no annotation!")
+                  }
+              }
+          }
+
+        return node
+    }
+
+    override func visit(_ node: TokenSyntax) -> Syntax {
+
+        if pass == 1 {
+            if let t = node.leadingTrivia, !t.isEmpty {
+                            
+                if let end = tmap[t.startIndex],
+                    let desc = piece(t),
+                    !desc.isEmpty {
+                    let d = desc.joined(separator: "\n")
+                    let ret = SyntaxFactory.makeUnknown(d)
+                    return ret
+                }
+            }
+        }
+        return node
+    }
+    
+    override func visit(_ node: DeclarationStmtSyntax) -> StmtSyntax {
+        return node
+    }
+    
+   
+    func piece(_ trivia: Trivia?) -> [String]? {
+        var pieces = [String]()
+        if let trivia = trivia {
+            for i in 0..<trivia.count {
+                switch trivia[i] {
+                case .docLineComment(let val):
+                    if val.contains(annotation) {
+                        let newval = val.replacingOccurrences(of: annotation, with: "")
+                        let ret = TriviaPiece.docLineComment(newval)
+                        pieces.append(ret.debugDescription)
+                    }
+                case .docBlockComment(let val):
+                    if val.contains(annotation) {
+                        let newval = val.replacingOccurrences(of: annotation, with: "")
+                        let ret = TriviaPiece.docBlockComment(newval)
+                        pieces.append(ret.debugDescription)
+                    }
+                default:
+                    continue
+                }
+            }
+        }
+        
+        return pieces.isEmpty ? nil : pieces
+    }
+    
+//    func visit(_ node: Trivia) -> Syntax {
+//        
+//        if pass == 1 {
+//        if let val = tmap[node.startIndex] {
+//            for i in 0..<node.count {
+//                switch node[i] {
+//                case .docLineComment(let val):
+//                    if val.contains(annotation) {
+//                        let newval = val.replacingOccurrences(of: annotation, with: "")
+//                        let ret = TriviaPiece.docLineComment(newval)
+//                        return Trivia(pieces: [ret])
+//                    }
+//                case .docBlockComment(let val):
+//                    if val.contains(annotation) {
+//                        let newval = val.replacingOccurrences(of: annotation, with: "")
+//                        let ret = TriviaPiece.docLineComment(newval)
+//                        return Trivia(pieces: [ret])
+//                    }
+//                default:
+//                    continue
+//                }
+//            }
+//        }
+//        }
+//        return node
+//    }
+
+
+}
 final class EntityVisitor: SyntaxVisitor {
     var entities: [Entity] = []
     var imports: [String] = []
     let annotation: String
-    
+    var vars = [String]()
     init(annotation: String = "") {
         self.annotation = annotation
     }
@@ -553,8 +655,27 @@ final class EntityVisitor: SyntaxVisitor {
     func reset() {
         entities = []
         imports = []
+        vars = []
     }
-    
+
+    func visit(_ node: VariableDeclSyntax) -> SyntaxVisitorContinueKind {
+        for v in node.bindings {
+            let name = v.pattern.firstToken?.text ?? String.unknownVal
+            var vtype = ""
+            if let t1 = v.typeAnnotation {
+                vtype = t1.type.description.trimmingCharacters(in: .whitespaces)
+                
+            } else if let t2 = v.initializer {
+                vtype = t2.value.description.trimmingCharacters(in: .whitespaces)
+            }
+            
+            if vtype.contains("Mock"), let vname = vtype.components(separatedBy: "Mock").first {
+                vars.append(vname)
+            }
+        }
+        return .skipChildren
+    }
+
     func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
         let metadata = node.annotationMetadata(with: annotation)
         if let ent = Entity.node(with: node, isPrivate: node.isPrivate, isFinal: false, metadata: metadata, processed: false) {
@@ -564,6 +685,8 @@ final class EntityVisitor: SyntaxVisitor {
     }
     
     func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+        return .visitChildren
+        
         if node.name.hasSuffix("Mock") {
             // this mock class node must be public else wouldn't have compiled before
             if let ent = Entity.node(with: node, isPrivate: node.isPrivate, isFinal: false, metadata: nil, processed: true) {

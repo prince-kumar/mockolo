@@ -125,7 +125,34 @@ class Executor {
     ///
     /// - parameter arguments: The command line arguments to execute the command with.
     func execute(with arguments: ArgumentParser.Result) {
-      
+        let root = "/Users/ellie/uber/ios"
+//        let dirs = [root + "/libraries/foundation"]
+        let dirs = [root + "/libraries",
+                    root + "/apps/iphone-helix", root + "/apps/carbon", root + "/apps/jump", root + "/apps/iphone-eats", root + "/apps/jump-ops"]
+        let xlist = "Tests Test Images Strings Models Services Fixture Screen Scene UITest Names"
+        let ofile = root + "/unused"
+        do {
+            try generate(sourceDirs: dirs,
+                         sourceFiles: nil,
+                         parser: ParserViaSourceKit(),
+                         exclusionSuffixes: xlist.components(separatedBy: " "),
+                         mockFilePaths: nil,
+                         annotation: "@CreateMock",
+                         header: nil,
+                         macro: nil,
+                         to: ofile,
+                         loggingLevel: 1,
+                         concurrencyLimit: 1, //nil,
+                         onCompletion: { _ in
+                    log("Done. Exiting program.", level: .info)
+                    exit(0)
+            })
+        } catch {
+            fatalError("Generation error: \(error)")
+        }
+        
+/// @CreateMock
+
         guard let outputArg = arguments.get(outputFilePath) else { fatalError("Missing destination file path") }
         let outputFilePath = fullPath(outputArg)
 

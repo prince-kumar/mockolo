@@ -148,11 +148,19 @@ public class ParserViaSourceKit: SourceParsing {
         
         do {
             var results = [Entity]()
+//            var ff = [String: [String]]()
             let topstructure = try Structure(path: path)
             for current in topstructure.substructures {
                 guard current.isProtocol else {continue}
 
                 let metadata = current.annotationMetadata(with: annotationData, in: content)
+//                if metadata != nil {
+//                    if ff[current.name] == nil {
+//                       ff[current.name] = []
+//                    }
+//                    ff[current.name]?.append(path)
+//                }
+
                 if let node = Entity.node(with: current, filepath: path, data: content, isPrivate: current.isPrivate, isFinal: current.isFinal, metadata: metadata, processed: false) {
                     results.append(node)
                 }
@@ -190,6 +198,62 @@ public class ParserViaSourceKit: SourceParsing {
             fatalError(error.localizedDescription)
         }
     }
+    
+    // MARK - extra
+    func asdf(_ path: String,
+              anMap: [String: String],
+              completion: @escaping ([String: String]) -> ()) {
+        var used = [String: String]()
+        
+        guard !path.contains("___") else {return}
+        if path.hasSuffix("Tests.swift") ||
+            path.hasSuffix("Test.swift") {
+
+
+        }
+    }
+    
+    let adata = "@CreateMock".data(using: .utf8)
+       let space = "           ".data(using: .utf8)
+
+       func rewrite(_ path: String,
+                    unusedlist: [String: String],
+                    xlist: [String],
+                    completion: @escaping (Data) -> ()) {
+           
+           guard let adata = adata, let space = space else {return}
+           guard path.shouldParse(with: xlist) else { return }
+           
+                  guard var content = FileManager.default.contents(atPath: path) else {
+                      fatalError("Retrieving contents of \(path) failed")
+                  }
+                  
+                 
+           do {
+               let topstructure = try Structure(path: path)
+               var ranges = [Range<Data.Index>]()
+               for current in topstructure.substructures {
+                   guard current.isProtocol else {continue}
+                   if let fpath = unusedlist[current.name], fpath == path {
+                       
+                       let start = Int(current.docOffset)
+                       let end = Int(current.docOffset + current.docLength)
+                       if let r = content.range(of: adata, options: [], in: start..<end) {
+                           ranges.append(r)
+                       }
+                   }
+               }
+               
+               for r in ranges {
+                   content.replaceSubrange(r, with: space)
+               }
+
+               completion(content)
+           } catch {
+               fatalError(error.localizedDescription)
+           }
+       }
+       
 }
 
 

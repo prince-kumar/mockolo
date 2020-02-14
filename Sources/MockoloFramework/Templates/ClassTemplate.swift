@@ -91,7 +91,7 @@ private func extraInitsIfNeeded(_ entities: [(String, Model)],
         needParamedInit = false
     } else {
         if declType == .protocolType {
-            needBlankInit = !hasBlankInit
+//            needBlankInit = !hasBlankInit
             needParamedInit = declaredInitParamsPerInit.isEmpty && !extraInitParamCandidates.isEmpty
         }
     }
@@ -116,18 +116,22 @@ private func extraInitsIfNeeded(_ entities: [(String, Model)],
         
         paramsAssign = extraInitParamCandidates.map { p in
             return """
-            self.\(p.name) = \(p.name.safeName)
+                self.\(p.name) = \(p.name.safeName)
             """
         }.joined(separator: "\n")
         
+//        initTemplate = """
+//        \(accessControlLevelDescription)init(\(params)) {
+//            \(paramsAssign)
+//            \(String.doneInit) = true
+//        }
+//        """
         initTemplate = """
         \(accessControlLevelDescription)init(\(params)) {
             \(paramsAssign)
-            \(String.doneInit) = true
         }
-        """
+    """
     }
-    
     
     let extraInitParamNames = extraInitParamCandidates.map{$0.name}
     let extraVarsToDecl = declaredInitParamsPerInit.flatMap{$0}.compactMap { (p: ParamModel) -> String? in
@@ -142,17 +146,23 @@ private func extraInitsIfNeeded(_ entities: [(String, Model)],
     if needBlankInit {
         // In case of protocol mocking, we want to provide a blank init (if not present already) for convenience,
         // where instance vars do not have to be set in init since they all have get/set (see VariableTemplate).
-        blankInit = "\(accessControlLevelDescription)init() { \(String.doneInit) = true }"
+//        blankInit = "\(accessControlLevelDescription)init() { \(String.doneInit) = true }"
+        blankInit = "\(accessControlLevelDescription)init() { }"
     }
 
-    let initFlag =  "private var \(String.doneInit) = false"
+//    let initFlag =  "private var \(String.doneInit) = false"
+//    let template = """
+//        \(initFlag)
+//        \(extraVarsToDecl)
+//        \(blankInit)
+//        \(initTemplate)
+//    """
     let template = """
-        \(initFlag)
         \(extraVarsToDecl)
         \(blankInit)
         \(initTemplate)
     """
- 
+
     return template
 }
 
