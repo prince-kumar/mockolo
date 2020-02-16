@@ -85,54 +85,33 @@ public class ParserViaSwiftSyntax: SourceParsing {
     }
     
     
-    
-    var somevisitor = EntityVisitor(annotation: "")
-    func asdf(_ path: String,
-              anMap: [String: String],
-              completion: @escaping ([String: String]) -> ()) {
-        var used = [String: String]()
-        
-        guard !path.contains("___") else {return}
-        if path.hasSuffix("Tests.swift") ||
-            path.hasSuffix("Test.swift") {
-            
-            do {
-                var results = [Entity]()
-                let node = try SyntaxParser.parse(path)
-                node.walk(&somevisitor)
-                
-                var varlist = [String: String]()
-                for k in somevisitor.vars {
-                    varlist[k] = path
-                }
-                completion(varlist)
-                somevisitor.reset()
-            } catch {
-                fatalError(error.localizedDescription)
-            }
-        }
-    }
-    
-    var somewriter = SomeWriter()
-    func rewrite(_ path: String,
-                 unusedlist: [String: String],
-                 xlist: [String],
-                 completion: @escaping ([String: String]) -> ()) {
-        
-        guard path.shouldParse(with: xlist) else { return }
+    func scanUsedTypes(_ path: String,
+                       _ annotation: String,
+                        completion: @escaping ([String]) -> ()) {
         
         do {
             let node = try SyntaxParser.parse(path)
-            somewriter.unusedlist = unusedlist
-            somewriter.pass = 0
-            let ret1 = somewriter.visit(node)
-            somewriter.pass = 1
-            let ret2 = somewriter.visit(node).description
-            completion([path: ret2])
-            
+            var visitor = CleanerVisitor(annotation: annotation, path: path, root: node)
+            node.walk(&visitor)
+            completion(visitor.usedTypes)
+            visitor.reset()
         } catch {
             fatalError(error.localizedDescription)
         }
     }
-
+    
+    func scanMockableTypes(_ path: String,
+                   _ annotation: String,
+                   completion: @escaping ([String], [String: (annotated: Bool, parents: [String], docLoc: (Int, Int))]) -> ()) {
+        
+        do {
+            let node = try SyntaxParser.parse(path)
+            var visitor = CleanerVisitor(annotation: annotation, path: path, root: node)
+            node.walk(&visitor)
+            completion(visitor.usedTypes, visitor.protocolMap)
+//            visitor.reset()
+        } catch {
+            fatalError(error.localizedDescription)
+        }
+    }
 }

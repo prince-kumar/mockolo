@@ -31,7 +31,7 @@ public enum ParserType {
 public func generate(sourceDirs: [String]?,
                      sourceFiles: [String]?,
                      parser: SourceParsing,
-                     exclusionSuffixes: [String],
+                     exclusionSuffixes: [String]?,
                      mockFilePaths: [String]?,
                      annotation: String,
                      header: String?,
@@ -56,9 +56,6 @@ public func generate(sourceDirs: [String]?,
     var relevantPaths = [String]()
     var resolvedEntities = [ResolvedEntity]()
     
-    var anMap = [String: String]()
-
-
     let maxConcurrentThreads = concurrencyLimit ?? 1
     let sema = maxConcurrentThreads <= 1 ? nil: DispatchSemaphore(value: maxConcurrentThreads)
     let mockgenQueue = maxConcurrentThreads == 1 ? nil: DispatchQueue(label: "mockgen-q", qos: DispatchQoS.userInteractive, attributes: DispatchQueue.Attributes.concurrent)
@@ -99,16 +96,6 @@ public func generate(sourceDirs: [String]?,
                       annotation: annotation,
                       semaphore: sema,
                       queue: mockgenQueue) { (elements, imports) in
-                        
-//                        if let list = imports {
-//                            for (k, v) in list {
-//                                if !k.contains("___") {
-//                                    anMap[k] = v.first ?? ""
-//                                }
-//                            }
-//                        }
-                        
-                        
                         elements.forEach { element in
                             protocolMap[element.entityNode.name] = element
                             if element.isAnnotated {
@@ -125,10 +112,6 @@ public func generate(sourceDirs: [String]?,
                         }
     }
     
-//    cleanup(sourceDirs, exclusionSuffixes, outputFilePath, anMap, sema, mockgenQueue)
-//    return
-        
-        
     signpost_end(name: "Generate protocol map")
     let t2 = CFAbsoluteTimeGetCurrent()
     log("Took", t2-t1, level: .verbose)
@@ -188,82 +171,4 @@ public func generate(sourceDirs: [String]?,
     log("#Protocols = \(protocolMap.count), #Annotated protocols = \(annotatedProtocolMap.count), #Parent mock classes = \(parentMocks.count), #Final mock classes = \(candidates.count), File LoC = \(count)", level: .verbose)
     
     onCompletion(result)
-}
-
-
-
-func cleanup(_ sdirs: [String]?,
-             _ exclusionSuffixes: [String],
-             _ outputFilePath: String,
-             _ anMap: [String: String],
-             _ semaphore: DispatchSemaphore?,
-             _ queue: DispatchQueue?) {
-
-    var unused = [String: String]()
-    var usedlist = [String: String]()
-    let dirs = sdirs ?? []
-    deleteUnusedMocks(dirs, anMap, semaphore, queue) { used in
-        for (k, v) in used {
-            usedlist[k] = v
-        }
-    }
-    
-    for (k, path) in anMap {
-        if usedlist[k] == nil {
-            unused[k] = path
-        }
-    }
-    
-    let unusedListStr = unused.map {"\($0.key): \($0.value)"}.joined(separator: "\n")
-    
-    print("#unused protocols", unused.count)
-    try? unusedListStr.write(toFile: outputFilePath, atomically: true, encoding: .utf8)
-
-
-    let pr = ParserViaSourceKit()
-    for path in unused.values {
-        pr.rewrite(path, unusedlist: unused, xlist: exclusionSuffixes, completion: { (data: Data) in
-            let url = URL(fileURLWithPath: path)
-            do {
-                try data.write(to: url, options: Data.WritingOptions.atomicWrite)
-            } catch {
-                fatalError(error.localizedDescription)
-            }
-        })
-    }
-    
-}
-
-
-func deleteUnusedMocks(_ dirs: [String],
-                       _ anMap: [String: String],
-                       _ semaphore: DispatchSemaphore?,
-                       _ queue: DispatchQueue?,
-                       _ completion: @escaping ([String: String]) -> ()) {
-
-    let p = ParserViaSwiftSyntax()
-    scanPaths(dirs) { filePath in
-        if filePath.hasSuffix("Test.swift") || filePath.hasSuffix("Tests.swift") {
-            p.asdf(filePath,
-                   anMap: anMap,
-                   completion: completion)
-        }
-    }
-    
-}
-
-
-protocol X {
-    var s: Int {get set}
-}
-
-
-class XMocks: X {
-    init(arg: Int = 0) {self.s = arg}
-    var c = 0
-    var s: Int {didSet {c += 1}}
-//    var s: Int {
-//        get {return c}
-//        set {c += 1}
-//    }
 }

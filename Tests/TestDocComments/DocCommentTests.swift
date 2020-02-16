@@ -4,7 +4,9 @@ import Foundation
 class DocCommentTests: MockoloTestCase {
     
     func testDocComment1() {
-        verify(srcContent: docComment1,
+//        verify(srcContent: docComment1,
+//               dstContent: docCommentMock)
+        verify(srcContent: docComment0,
                dstContent: docCommentMock)
     }
     

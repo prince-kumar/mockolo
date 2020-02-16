@@ -65,15 +65,15 @@ extension ModifierListSyntax {
     var isStatic: Bool {
         return self.tokens.filter {$0.tokenKind == .staticKeyword }.count > 0
     }
-
+    
     var isRequired: Bool {
         return self.tokens.filter {$0.text == String.required }.count > 0
     }
-
+    
     var isConvenience: Bool {
         return self.tokens.filter {$0.text == String.convenience }.count > 0
     }
-
+    
     var isOverride: Bool {
         return self.tokens.filter {$0.text == String.override }.count > 0
     }
@@ -81,11 +81,11 @@ extension ModifierListSyntax {
     var isFinal: Bool {
         return self.tokens.filter {$0.text == String.final }.count > 0
     }
-
+    
     var isPrivate: Bool {
         return self.tokens.filter {$0.tokenKind == .privateKeyword || $0.tokenKind == .fileprivateKeyword }.count > 0
     }
-
+    
     var isPublic: Bool {
         return self.tokens.filter {$0.tokenKind == .publicKeyword }.count > 0
     }
@@ -144,7 +144,7 @@ extension MemberDeclListItemSyntax {
         }
         return modifiers?.acl ?? ""
     }
-       
+    
     func transformToModel(with encloserAcl: String, declType: DeclType, overrides: [String: String]?, processed: Bool) -> (Model, String?, Bool)? {
         if let varMember = self.decl as? VariableDeclSyntax {
             if validateMember(varMember.modifiers, declType, processed: processed) {
@@ -187,7 +187,7 @@ extension MemberDeclListItemSyntax {
         return nil
     }
 }
-    
+
 extension MemberDeclListSyntax {
     func memberData(with encloserAcl: String, declType: DeclType, overrides: [String: String]?, processed: Bool) -> EntityNodeSubContainer {
         var attributeList = [String]()
@@ -212,12 +212,12 @@ extension IfConfigDeclSyntax {
         var subModels = [Model]()
         var attrDesc: String?
         var hasInit = false
-
+        
         var name = ""
         for cl in self.clauses {
             if let desc = cl.condition?.description, let list = cl.elements as? MemberDeclListSyntax {
                 name = desc
-
+                
                 for element in list {
                     if let (item, attr, flag) = element.transformToModel(with: encloserAcl, declType: declType, overrides: overrides, processed: processed) {
                         subModels.append(item)
@@ -251,7 +251,7 @@ extension ProtocolDeclSyntax: EntityNode {
     var isPrivate: Bool {
         return self.modifiers?.isPrivate ?? false
     }
-
+    
     var inheritedTypes: [String] {
         return inheritanceClause?.types ?? []
     }
@@ -282,11 +282,11 @@ extension ClassDeclSyntax: EntityNode {
     var acl: String {
         return self.modifiers?.acl ?? ""
     }
-
+    
     var declType: DeclType {
         return .classType
     }
-
+    
     var inheritedTypes: [String] {
         return inheritanceClause?.types ?? []
     }
@@ -302,15 +302,15 @@ extension ClassDeclSyntax: EntityNode {
     var isFinal: Bool {
         return self.modifiers?.isFinal ?? false
     }
-
+    
     var isPrivate: Bool {
         return self.modifiers?.isPrivate ?? false
     }
-
+    
     var isPublic: Bool {
         return self.modifiers?.isPublic ?? false
     }
-
+    
     func annotationMetadata(with annotation: String) -> AnnotationMetadata? {
         return leadingTrivia?.annotationMetadata(with: annotation)
     }
@@ -368,23 +368,23 @@ extension SubscriptDeclSyntax {
         if let modifiers = self.modifiers {
             isStatic = modifiers.isStatic
         }
-
+        
         let params = self.indices.parameterList.compactMap { $0.model(inInit: false, declType: declType) }
         let genericTypeParams = self.genericParameterClause?.genericParameterList.compactMap { $0.model(inInit: false) } ?? []
         
         let subscriptModel = MethodModel(name: self.subscriptKeyword.text,
-                                            typeName: self.result.returnType.description,
-                                            kind: .subscriptKind,
-                                            encloserType: declType,
-                                            acl: acl,
-                                            genericTypeParams: genericTypeParams,
-                                            params: params,
-                                            throwsOrRethrows: "",
-                                            isStatic: isStatic,
-                                            offset: self.offset,
-                                            length: self.length,
-                                            modelDescription: self.description,
-                                            processed: processed)
+                                         typeName: self.result.returnType.description,
+                                         kind: .subscriptKind,
+                                         encloserType: declType,
+                                         acl: acl,
+                                         genericTypeParams: genericTypeParams,
+                                         params: params,
+                                         throwsOrRethrows: "",
+                                         isStatic: isStatic,
+                                         offset: self.offset,
+                                         length: self.length,
+                                         modelDescription: self.description,
+                                         processed: processed)
         return subscriptModel
     }
 }
@@ -396,7 +396,7 @@ extension FunctionDeclSyntax {
         if let modifiers = self.modifiers {
             isStatic = modifiers.isStatic
         }
-
+        
         let params = self.signature.input.parameterList.compactMap { $0.model(inInit: false, declType: declType) }
         let genericTypeParams = self.genericParameterClause?.genericParameterList.compactMap { $0.model(inInit: false) } ?? []
         
@@ -540,114 +540,10 @@ extension TypealiasDeclSyntax {
     }
 }
 
-class SomeWriter: SyntaxRewriter {
-    let annotation = "@CreateMock"
-    var unusedlist = [String: String]()
-    var pass: Int = 0
-    var tmap = [Int: Int]()
-
-   override func visit(_ node: DeclModifierSyntax) -> Syntax {
-     return node
-   }
-
-    override func visit(_ node: ProtocolDeclSyntax) -> DeclSyntax {
-          if pass == 0 {
-              
-              if unusedlist[node.name] != nil {
-                  // unused!
-                  if let trivia = node.leadingTrivia {
-                      tmap[trivia.startIndex] = trivia.endIndex
-                  } else {
-                      print("no annotation!")
-                  }
-              }
-          }
-
-        return node
-    }
-
-    override func visit(_ node: TokenSyntax) -> Syntax {
-
-        if pass == 1 {
-            if let t = node.leadingTrivia, !t.isEmpty {
-                            
-                if let end = tmap[t.startIndex],
-                    let desc = piece(t),
-                    !desc.isEmpty {
-                    let d = desc.joined(separator: "\n")
-                    let ret = SyntaxFactory.makeUnknown(d)
-                    return ret
-                }
-            }
-        }
-        return node
-    }
-    
-    override func visit(_ node: DeclarationStmtSyntax) -> StmtSyntax {
-        return node
-    }
-    
-   
-    func piece(_ trivia: Trivia?) -> [String]? {
-        var pieces = [String]()
-        if let trivia = trivia {
-            for i in 0..<trivia.count {
-                switch trivia[i] {
-                case .docLineComment(let val):
-                    if val.contains(annotation) {
-                        let newval = val.replacingOccurrences(of: annotation, with: "")
-                        let ret = TriviaPiece.docLineComment(newval)
-                        pieces.append(ret.debugDescription)
-                    }
-                case .docBlockComment(let val):
-                    if val.contains(annotation) {
-                        let newval = val.replacingOccurrences(of: annotation, with: "")
-                        let ret = TriviaPiece.docBlockComment(newval)
-                        pieces.append(ret.debugDescription)
-                    }
-                default:
-                    continue
-                }
-            }
-        }
-        
-        return pieces.isEmpty ? nil : pieces
-    }
-    
-//    func visit(_ node: Trivia) -> Syntax {
-//        
-//        if pass == 1 {
-//        if let val = tmap[node.startIndex] {
-//            for i in 0..<node.count {
-//                switch node[i] {
-//                case .docLineComment(let val):
-//                    if val.contains(annotation) {
-//                        let newval = val.replacingOccurrences(of: annotation, with: "")
-//                        let ret = TriviaPiece.docLineComment(newval)
-//                        return Trivia(pieces: [ret])
-//                    }
-//                case .docBlockComment(let val):
-//                    if val.contains(annotation) {
-//                        let newval = val.replacingOccurrences(of: annotation, with: "")
-//                        let ret = TriviaPiece.docLineComment(newval)
-//                        return Trivia(pieces: [ret])
-//                    }
-//                default:
-//                    continue
-//                }
-//            }
-//        }
-//        }
-//        return node
-//    }
-
-
-}
 final class EntityVisitor: SyntaxVisitor {
     var entities: [Entity] = []
     var imports: [String] = []
     let annotation: String
-    var vars = [String]()
     init(annotation: String = "") {
         self.annotation = annotation
     }
@@ -655,27 +551,8 @@ final class EntityVisitor: SyntaxVisitor {
     func reset() {
         entities = []
         imports = []
-        vars = []
     }
-
-    func visit(_ node: VariableDeclSyntax) -> SyntaxVisitorContinueKind {
-        for v in node.bindings {
-            let name = v.pattern.firstToken?.text ?? String.unknownVal
-            var vtype = ""
-            if let t1 = v.typeAnnotation {
-                vtype = t1.type.description.trimmingCharacters(in: .whitespaces)
-                
-            } else if let t2 = v.initializer {
-                vtype = t2.value.description.trimmingCharacters(in: .whitespaces)
-            }
-            
-            if vtype.contains("Mock"), let vname = vtype.components(separatedBy: "Mock").first {
-                vars.append(vname)
-            }
-        }
-        return .skipChildren
-    }
-
+    
     func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
         let metadata = node.annotationMetadata(with: annotation)
         if let ent = Entity.node(with: node, isPrivate: node.isPrivate, isFinal: false, metadata: metadata, processed: false) {
@@ -693,10 +570,13 @@ final class EntityVisitor: SyntaxVisitor {
                 entities.append(ent)
             }
         } else {
-//            let metadata = node.annotationMetadata(with: annotation)
-//            if let ent = Entity.node(with: node, isPrivate: node.isPrivate, isFinal: node.isFinal, metadata: metadata, processed: false) {
-//                entities.append(ent)
-//            }
+            #if MOCKCLASS
+            // TODO: needed for class mocking
+            let metadata = node.annotationMetadata(with: annotation)
+            if let ent = Entity.node(with: node, isPrivate: node.isPrivate, isFinal: node.isFinal, metadata: metadata, processed: false) {
+                entities.append(ent)
+            }
+            #endif
         }
         return .skipChildren
     }
@@ -766,5 +646,112 @@ extension Trivia {
             }
         }
         return nil
+    }
+}
+
+// MARK - used for cleanup
+
+final class CleanerVisitor: SyntaxVisitor {
+    let annotation: String
+    let pass: Int
+    let root: SourceFileSyntax
+    let path: String
+    let converter: SourceLocationConverter
+    let charset: CharacterSet
+    var usedTypes = [String]()
+    var protocolMap = [String: (annotated: Bool, parents: [String], docLoc: (Int, Int))]()
+    
+    init(annotation: String, path: String, root: SourceFileSyntax) {
+        self.annotation = annotation
+        self.path = path
+        self.root = root
+        self.converter = SourceLocationConverter(file: path, tree: root)
+        self.pass = annotation.isEmpty ? 1 : 0
+        self.charset = CharacterSet(arrayLiteral: "!", "?").union(.whitespaces)
+    }
+    
+    func reset() {
+        usedTypes.removeAll()
+        protocolMap.removeAll()
+    }
+
+    func visit(_ node: ReturnClauseSyntax) -> SyntaxVisitorContinueKind {
+        if pass == 0 {
+            let text = node.returnType.description.trimmingCharacters(in: .whitespaces)
+            if let _ = Type(text).defaultVal(with: nil, isInitParam: false) {
+            } else {
+                usedTypes.append(text)
+            }
+            return .visitChildren
+        }
+        return .skipChildren
+    }
+    
+    func visit(_ node: IdentifierExprSyntax) -> SyntaxVisitorContinueKind {
+        if pass == 1 {
+            let text = node.identifier.text
+            let isType = text.first?.isUppercase ?? false
+            if isType, text.contains("Mock"), let typename = text.components(separatedBy: "Mock").first {
+                usedTypes.append(typename)
+            }
+        }
+        return .skipChildren
+    }
+    
+    func visit(_ node: VariableDeclSyntax) -> SyntaxVisitorContinueKind {
+        var hasSubs = false
+        for v in node.bindings {
+            var vtype = ""
+            if let t1 = v.typeAnnotation {
+                vtype = t1.type.description.trimmingCharacters(in: .whitespaces)
+            } else if let t2 = v.initializer {
+                vtype = t2.value.description.trimmingCharacters(in: .whitespaces)
+                hasSubs = true
+            }
+            
+            if pass == 0 {
+                if let dval = Type(vtype).defaultVal(with: nil, isInitParam: false) {
+                } else if !hasSubs {
+                    // If no default val found, it's potentially used, so add it to used types
+                    usedTypes.append(vtype.trimmingCharacters(in: charset))
+                }
+            }
+        }
+        
+        return hasSubs ? .visitChildren : .skipChildren
+    }
+ 
+    func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+        if pass == 1 {
+            let mockClasses = node.inheritedTypes.filter{$0.hasSuffix("Mock")}
+            let used = mockClasses.compactMap {$0.components(separatedBy: "Mock").first}
+            usedTypes.append(contentsOf: used)
+        }
+        return .visitChildren
+    }
+    
+    func visit(_ node: ProtocolDeclSyntax) -> SyntaxVisitorContinueKind {
+        if pass == 0 {
+            let metadata = node.annotationMetadata(with: annotation)
+            
+            if protocolMap[node.name] == nil {
+                protocolMap[node.name] = (false, [], (0, 0))
+            }
+            if metadata != nil {
+                protocolMap[node.name]?.annotated = true
+
+                let loc = node.startLocation(converter: converter)
+                if let l = loc.line, let c = loc.column {
+                    let pos = converter.position(ofLine: l, column: c)
+                    if let len = node.leadingTrivia?.sourceLength {
+                        let end = pos.utf8Offset
+                        let start = end - len.utf8Length
+                        protocolMap[node.name]?.docLoc = (start, end)
+                    }
+                }
+            }
+            protocolMap[node.name]?.parents.append(contentsOf: node.inheritedTypes)
+        }
+        return .visitChildren
     }
 }

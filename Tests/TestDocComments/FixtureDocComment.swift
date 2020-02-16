@@ -1,5 +1,22 @@
+let docComment0 = """
+//
+// lol
+protocol X: Y {}
 
 
+
+//
+//
+/// omg
+/// \(String.mockAnnotation)
+protocol DocProtocol: Doc {}
+"""
+let docComment00 = """
+public protocol DocProtocol: Doc {
+    func foo(arg: Bool, tag: Int)
+    func bar(name: String, more: Float)
+}
+"""
 
 let docComment1 = """
 //

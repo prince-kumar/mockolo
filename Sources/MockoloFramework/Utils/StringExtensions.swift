@@ -90,6 +90,26 @@ extension String {
         }
         return self
     }
+    
+    var module: String {
+        let longer = self.components(separatedBy: "/")
+        let shorter = self.components(separatedBy: "/").dropFirst()
+        let ret = zip(longer, shorter).filter { $0 == $1 }
+        let str = ret.first?.0 ?? ""
+        return str
+    }
+    
+    public var fullPath: String {
+        let path = self
+        if path.hasPrefix("/") {
+            return path
+        }
+        if path.hasPrefix("~") {
+            let home = FileManager.default.homeDirectoryForCurrentUser.path
+            return path.replacingOccurrences(of: "~", with: home, range: path.range(of: "~"))
+        }
+        return FileManager.default.currentDirectoryPath + "/" + path
+    }
 }
 
 let separatorsForDisplay = CharacterSet(charactersIn: "<>[] :,()_-.&@#!{}@+\"\'")
