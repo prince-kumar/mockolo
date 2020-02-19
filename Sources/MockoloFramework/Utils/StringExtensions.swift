@@ -31,6 +31,7 @@ extension String {
         case `switch` = "switch"
     }
     static let doneInit = "_doneInit"
+    static let hasBlankInit = "_hasBlankInit"
     static let `static` = "static"
     static let `import` = "import "
     static public let `class` = "class"

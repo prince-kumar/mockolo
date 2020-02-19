@@ -31,8 +31,6 @@ func applyVariableTemplate(name: String,
     if underlyingVarDefaultVal.isEmpty {
         underlyingType = type.underlyingType
     }
-    let setCallCountStmt = //staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" :
-                            "\(underlyingSetCallCount) += 1"
 
     let overrideStr = shouldOverride ? "\(String.override) " : ""
     var acl = accessControlLevelDescription
@@ -42,10 +40,14 @@ func applyVariableTemplate(name: String,
 
     let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
     let assignVal = underlyingVarDefaultVal.isEmpty ? "" : "= \(underlyingVarDefaultVal)"
-    
+    var setCallCountStmt = "\(underlyingSetCallCount) += 1"
+
     var template = ""
     if !staticKind.isEmpty ||  underlyingVarDefaultVal.isEmpty {
-            template = """
+        if staticKind.isEmpty {
+            setCallCountStmt = "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }"
+        }
+        template = """
             \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
             \(staticStr)var \(underlyingName): \(underlyingType) \(assignVal)
             \(acl)\(staticStr)\(overrideStr)var \(name): \(type.typeName) {

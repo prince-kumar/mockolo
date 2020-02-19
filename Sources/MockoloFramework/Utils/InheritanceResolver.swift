@@ -62,7 +62,7 @@ func lookupEntities(key: String,
                     processedModels.append(contentsOf: parentProcessedModels)
                     attributes.append(contentsOf: parentAttributes)
                     paths.append(contentsOf: parentPaths)
-                    pathToContents.append(contentsOf:parentPathToContents)
+                    pathToContents.append(contentsOf: parentPathToContents)
                 }
             }
         }

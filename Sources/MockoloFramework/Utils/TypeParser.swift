@@ -387,7 +387,7 @@ public struct Type {
     }
     
     
-    func parseDefaultVal(isInitParam: Bool) -> String? {
+    private func parseDefaultVal(isInitParam: Bool) -> String? {
         let arg = self
         
         if let val = defaultSingularVal(isInitParam: isInitParam) {

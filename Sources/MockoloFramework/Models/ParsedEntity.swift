@@ -25,6 +25,50 @@ struct ResolvedEntity {
     let attributes: [String]
     let typealiasWhitelist: [String: [String]]?
     
+    var declaredInits: [MethodModel] {
+        return uniqueModels.filter {$0.1.isInitializer}.compactMap{ $0.1 as? MethodModel }
+    }
+    
+    var hasDeclaredEmptyInit: Bool {
+        return !declaredInits.filter { $0.params.isEmpty }.isEmpty
+    }
+    
+    var declaredInitParams: [ParamModel] {
+        return declaredInits.map { $0.params }.flatMap{$0}
+    }
+
+    var initParamCandidates: [Model] {
+        return sortedInitVars(in: uniqueModels.map{$0.1})
+    }
+    
+    func needValsForInitParams(with typeKeys: [String: String]?) -> Bool {
+        let paramsWithNoDefaultVals = initParamCandidates.filter { $0.type.defaultVal(with: typeKeys, isInitParam: true) == nil }
+        let ret = !paramsWithNoDefaultVals.isEmpty
+        return ret
+    }
+
+    func hasBlankInit(with typeKeys: [String: String]?) -> Bool {
+        return hasDeclaredEmptyInit || !needValsForInitParams(with: typeKeys)
+    }
+
+    /// Returns models that can be used as parameters to an initializer
+    /// @param models The models (processed and unprocessed) of the current entity
+    /// @returns A list of init parameter models
+    private func sortedInitVars(`in` models: [Model]) -> [Model] {
+        let processed = models.filter {$0.processed && $0.canBeInitParam}
+        let unprocessed = models.filter {!$0.processed && $0.canBeInitParam}
+
+        // Named params in init should be unique. Add a duplicate param check to ensure it.
+        let curVarsSorted = unprocessed.sorted(path: \.offset, fallback: \.name)
+            
+        let curVarNames = curVarsSorted.map(path: \.name)
+        let parentVars = processed.filter {!curVarNames.contains($0.name)}
+        let parentVarsSorted = parentVars.sorted(path: \.offset, fallback: \.name)
+        let result = [curVarsSorted, parentVarsSorted].flatMap{$0}
+        return result
+    }
+
+    
     func model() -> Model {
         return ClassModel(identifier: key,
                           acl: entity.entityNode.acl,
@@ -32,6 +76,8 @@ struct ResolvedEntity {
                           attributes: attributes,
                           offset: entity.entityNode.offset,
                           typealiasWhitelist: typealiasWhitelist,
+                          initParamCandidates: initParamCandidates,
+                          declaredInits: declaredInits,
                           entities: uniqueModels)
     }
 }
@@ -49,6 +95,7 @@ protocol EntityNode {
     var declType: DeclType { get }
     var inheritedTypes: [String] { get }
     var offset: Int64 { get }
+    var hasBlankInit: Bool { get }
     func subContainer(overrides: [String: String]?, declType: DeclType, path: String?, data: Data?, isProcessed: Bool) -> EntityNodeSubContainer
 }
 
@@ -89,7 +136,7 @@ public final class Entity {
                      processed: Bool) -> Entity? {
         
         guard !isPrivate, !isFinal else {return nil}
-
+        
         let node = Entity(entityNode: entityNode,
                           filepath: filepath,
                           data: data,

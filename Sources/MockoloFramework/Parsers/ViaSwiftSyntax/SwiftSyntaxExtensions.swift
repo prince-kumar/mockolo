@@ -180,8 +180,8 @@ extension MemberDeclListItemSyntax {
             let item = taMember.model(with: acl, declType: declType, overrides: overrides, processed: processed)
             return (item, taMember.attributes?.trimmedDescription, false)
         } else if let ifMacroMember = self.decl as? IfConfigDeclSyntax {
-            let (item, attr, flag) = ifMacroMember.model(with: encloserAcl, declType: declType, overrides: overrides, processed: processed)
-            return (item, attr, flag)
+            let (item, attr, initFlag) = ifMacroMember.model(with: encloserAcl, declType: declType, overrides: overrides, processed: processed)
+            return (item, attr, initFlag)
         }
         
         return nil
@@ -189,18 +189,33 @@ extension MemberDeclListItemSyntax {
 }
 
 extension MemberDeclListSyntax {
+    var hasBlankInit: Bool {
+        for member in self {
+            if let varMember = member.decl as? VariableDeclSyntax {
+                for v in varMember.bindings {
+                    if let name = v.pattern.firstToken?.text {
+                        if name == String.hasBlankInit {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+        return false
+    }
+
     func memberData(with encloserAcl: String, declType: DeclType, overrides: [String: String]?, processed: Bool) -> EntityNodeSubContainer {
         var attributeList = [String]()
         var memberList = [Model]()
         var hasInit = false
-        
+
         for m in self {
-            if let (item, attr, flag) = m.transformToModel(with: encloserAcl, declType: declType, overrides: overrides, processed: processed) {
+            if let (item, attr, initFlag) = m.transformToModel(with: encloserAcl, declType: declType, overrides: overrides, processed: processed) {
                 memberList.append(item)
                 if let attrDesc = attr {
                     attributeList.append(attrDesc)
                 }
-                hasInit = hasInit || flag
+                hasInit = hasInit || initFlag
             }
         }
         return EntityNodeSubContainer(attributes: attributeList, members: memberList, hasInit: hasInit)
@@ -212,19 +227,19 @@ extension IfConfigDeclSyntax {
         var subModels = [Model]()
         var attrDesc: String?
         var hasInit = false
-        
+
         var name = ""
         for cl in self.clauses {
             if let desc = cl.condition?.description, let list = cl.elements as? MemberDeclListSyntax {
                 name = desc
                 
                 for element in list {
-                    if let (item, attr, flag) = element.transformToModel(with: encloserAcl, declType: declType, overrides: overrides, processed: processed) {
+                    if let (item, attr, initFlag) = element.transformToModel(with: encloserAcl, declType: declType, overrides: overrides, processed: processed) {
                         subModels.append(item)
                         if let attr = attr, attr.contains(String.available) {
                             attrDesc = attr
                         }
-                        hasInit = hasInit || flag
+                        hasInit = hasInit || initFlag
                     }
                 }
             }
@@ -268,6 +283,10 @@ extension ProtocolDeclSyntax: EntityNode {
         return leadingTrivia?.annotationMetadata(with: annotation)
     }
     
+    var hasBlankInit: Bool {
+        return false
+    }
+    
     func subContainer(overrides: [String: String]?, declType: DeclType, path: String?, data: Data?, isProcessed: Bool) -> EntityNodeSubContainer {
         return self.members.members.memberData(with: acl, declType: declType, overrides: overrides, processed: isProcessed)
     }
@@ -309,6 +328,10 @@ extension ClassDeclSyntax: EntityNode {
     
     var isPublic: Bool {
         return self.modifiers?.isPublic ?? false
+    }
+    
+    var hasBlankInit: Bool {
+        return self.members.members.hasBlankInit
     }
     
     func annotationMetadata(with annotation: String) -> AnnotationMetadata? {
@@ -704,7 +727,7 @@ final class CleanerVisitor: SyntaxVisitor {
             }
             
             if pass == 0 {
-                if let dval = Type(vtype).defaultVal(with: nil, isInitParam: false) {
+                if let _ = Type(vtype).defaultVal(with: nil, isInitParam: false) {
                 } else if !hasSubs {
                     // If no default val found, it's potentially used, so add it to used types
                     usedTypes.append(vtype.trimmingCharacters(in: charset))

@@ -115,6 +115,7 @@ public func generate(sourceDirs: [String]?,
                         }
     }
     
+    
     signpost_end(name: "Generate protocol map")
     let t2 = CFAbsoluteTimeGetCurrent()
     log("Took", t2-t1, level: .verbose)
@@ -132,29 +133,36 @@ public func generate(sourceDirs: [String]?,
                             relevantPaths.append(contentsOf: container.paths)
                             resolvedEntities.append(container.entity)
     })
+    
     signpost_end(name: "Generate models")
     let t3 = CFAbsoluteTimeGetCurrent()
     log("Took", t3-t2, level: .verbose)
     
+    signpost_begin(name: "Generate type keys")
+    log("Generate type keys...", level: .info)
+    var typeKeyMap = [String: String]()
+    generateTypeKeys(dependentTypes: parentMocks,
+                     resolvedEntities: resolvedEntities) { typeMap in
+                        typeKeyMap = typeMap
+    }
+    
+    let t4 = CFAbsoluteTimeGetCurrent()
+    log("Took", t4-t3, level: .verbose)
+    signpost_end(name: "Generate type keys")
 
     signpost_begin(name: "Render models")
-//    let typeKeyList = [parentMocks.filter{$0.value.hasBlankInit}.compactMap {$0.key.components(separatedBy: "Mock").first}, annotatedProtocolMap.filter{$0.value.hasBlankInit}.map {$0.key}].flatMap{$0}
-//    var typeKeys = [String: String]()
-//    typeKeyList.forEach { (t: String) in
-//        typeKeys[t] = "\(t)Mock()"
-//    }
     
     log("Render models with templates...", level: .info)
     renderTemplates(entities: resolvedEntities,
-                    typeKeys: nil,
+                    typeKeys: typeKeyMap,
                     semaphore: sema,
                     queue: mockgenQueue,
                     completion: { (mockString: String, offset: Int64) in
                         candidates.append((mockString, offset))
     })
     signpost_end(name: "Render models")
-    let t4 = CFAbsoluteTimeGetCurrent()
-    log("Took", t4-t3, level: .verbose)
+    let t5 = CFAbsoluteTimeGetCurrent()
+    log("Took", t5-t4, level: .verbose)
     
     signpost_begin(name: "Write results")
     log("Write the mock results and import lines to", outputFilePath, level: .info)
@@ -166,11 +174,11 @@ public func generate(sourceDirs: [String]?,
                        macro: macro,
                        to: outputFilePath)
     signpost_end(name: "Write results")
-    let t5 = CFAbsoluteTimeGetCurrent()
-    log("Took", t5-t4, level: .verbose)
+    let t6 = CFAbsoluteTimeGetCurrent()
+    log("Took", t6-t5, level: .verbose)
     
     let count = result.components(separatedBy: "\n").count
-    log("TOTAL", t5-t0, level: .verbose)
+    log("TOTAL", t6-t0, level: .verbose)
     log("#Protocols = \(protocolMap.count), #Annotated protocols = \(annotatedProtocolMap.count), #Parent mock classes = \(parentMocks.count), #Final mock classes = \(candidates.count), File LoC = \(count)", level: .verbose)
     
     onCompletion(result)

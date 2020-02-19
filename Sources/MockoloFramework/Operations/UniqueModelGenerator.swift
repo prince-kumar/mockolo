@@ -83,8 +83,6 @@ func generateUniqueModels(key: String,
     return ResolvedEntityContainer(entity: resolvedEntity, paths: paths, imports: pathToContentList)
 }
 
-
-
 func generateUniqueModels(key: String,
                           entity: Entity,
                           protocolMap: [String: Entity],
@@ -99,3 +97,39 @@ func generateUniqueModels(key: String,
 }
 
 
+func generateTypeKeys(dependentTypes: [String: Entity],
+                      resolvedEntities: [ResolvedEntity],
+                      completion: @escaping ([String: String]) -> ()) {
+    
+    var typeKeys = [String: String]()
+
+    for element in dependentTypes {
+        if element.value.entityNode.hasBlankInit {
+            let (k, v) = mockTypeKeyVal(element.key)
+            typeKeys[k] = v
+        }
+    }
+
+    let firstFiltered = resolvedEntities.filter { $0.hasBlankInit(with: typeKeys) }
+    for element in firstFiltered {
+        let (k, v) = mockTypeKeyVal(element.key)
+        typeKeys[k] = v
+    }
+    
+    let secondFiltered = firstFiltered.filter { !$0.needValsForInitParams(with: typeKeys) }
+    for element in secondFiltered {
+        let (k, v) = mockTypeKeyVal(element.key)
+        typeKeys[k] = v
+    }
+    
+    completion(typeKeys)
+}
+
+func mockTypeKeyVal(_ arg: String)  -> (String, String) {
+    var key = arg
+    if arg.hasSuffix("Mock"), let k = arg.components(separatedBy: "Mock").first {
+        key = k
+    }
+    
+    return (key, key + "Mock()")
+}

@@ -227,6 +227,10 @@ extension Structure: EntityNode {
     var isInitializer: Bool {
         return name.hasPrefix(.initializerPrefix) && isInstanceMethod
     }
+
+    var hasBlankInit: Bool {
+        return !substructures.filter{$0.name == .hasBlankInit}.isEmpty
+    }
     
     var isSubscript: Bool {
         return kind == SwiftDeclarationKind.functionSubscript.rawValue
