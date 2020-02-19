@@ -86,10 +86,6 @@ public func scanUsedTypes(dirs: [String],
                     if let list = usedProtocolMap[usedType], !list.contains(module) {
                         usedProtocolMap[usedType]?.append(module)
                     }
-                    
-                    if usedType.contains("PaymentViewControllableProvidingLifecycle") {
-                        log("Inside used set", "added to used protocol map?", usedProtocolMap[usedType], module)
-                    }
                 }
                 
                 for (k, v) in argProtocolMap {
@@ -178,38 +174,20 @@ public func checkUnusedTypes(_ annotatedProtocolMap: [String: Entry],
         findUnusedTypes(curType, curVal.module, protocolMap, usedTypeMap, &unusedProtocolMap, &usedList, level)
     }
     
-    for (k, v) in usedList {
-        for w in v {
-            if w.contains("PaymentViewControllableProvidingLifecycle") {
-                log("USED: ", k, w)
-            }
-        }
-    }
-    
     // filter used list from unused
     let reallyUnusedMap = unusedProtocolMap.filter { (path: String, value: [Loc]) -> Bool in
         for v in value {
             if usedList[path]?.contains(v.name) ?? false {
-                if v.name.contains("PaymentViewControllableProvidingLifecycle") {
-                    log("PPPPPPPPP")
-                }
                 return false
             }
             
             if let _ = usedTypeMap[v.name] {
-                if v.name.contains("PaymentViewControllableProvidingLifecycle") {
-                    log("ASDFFFFF")
-                }
                 return false
             }
         }
         return !value.isEmpty
     }
     
-    if let list = reallyUnusedMap["/Users/ellie/uber/ios/libraries/feature/payment/PaymentFoundation/PaymentFoundation/PaymentViewController.swift"] {
-        let sublist = list.filter {$0.name.contains("PaymentViewControllableProvidingLifecycle")}
-        log("Reallyunusedmap contains PaymentViewControllableProvidingLifecycle  ?", !sublist.isEmpty)
-    }
     return (reallyUnusedMap, usedList)
 }
 
@@ -221,9 +199,6 @@ private func findUnusedTypes(_ curType: String,
                              _ usedList: inout [String: [String]],
                              _ level: Int) {
     if let _ = usedTypeMap[curType] {
-        if curType.contains("PaymentViewControllableProvidingLifecycle") {
-            log("1111 -- LOOKED UP in used map and found, so don't add to any list", level)
-        }
     } else if let val = protocolMap[curType] {
         let unusedPath = val.path
         if curModule == val.module {
@@ -239,17 +214,11 @@ private func findUnusedTypes(_ curType: String,
                 }
             }
             if add {
-                if curType.contains("PaymentViewControllableProvidingLifecycle") {
-                    log("1111 -- Adding to unused", level)
-                }
                 unusedProtocolMap[unusedPath]?.append(Loc(name: curType, docLoc: val.docLoc))
             }
         } else {
             if usedList[unusedPath] == nil {
                 usedList[unusedPath] = []
-            }
-            if curType.contains("PaymentViewControllableProvidingLifecycle") {
-                log("1111 -- Adding to USED buffer", level)
             }
             usedList[unusedPath]?.append(curType)
         }
