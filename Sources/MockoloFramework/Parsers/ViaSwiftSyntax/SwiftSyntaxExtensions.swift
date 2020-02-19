@@ -173,11 +173,11 @@ extension MemberDeclListItemSyntax {
             }
         } else if let patMember = self.decl as? AssociatedtypeDeclSyntax {
             let acl = memberAcl(patMember.modifiers, encloserAcl, declType)
-            let item = patMember.model(with: acl, overrides: overrides, processed: processed)
+            let item = patMember.model(with: acl, declType: declType, overrides: overrides, processed: processed)
             return (item, patMember.attributes?.trimmedDescription, false)
         } else if let taMember = self.decl as? TypealiasDeclSyntax {
             let acl = memberAcl(taMember.modifiers, encloserAcl, declType)
-            let item = taMember.model(with: acl, overrides: overrides, processed: processed)
+            let item = taMember.model(with: acl, declType: declType, overrides: overrides, processed: processed)
             return (item, taMember.attributes?.trimmedDescription, false)
         } else if let ifMacroMember = self.decl as? IfConfigDeclSyntax {
             let (item, attr, flag) = ifMacroMember.model(with: encloserAcl, declType: declType, overrides: overrides, processed: processed)
@@ -335,15 +335,9 @@ extension VariableDeclSyntax {
             var potentialInitParam = false
             
             // Get the type info and whether it can be a var param for an initializer
-            if let vtype = v.typeAnnotation?.type.description {
+            if let vtype = v.typeAnnotation?.type.description.trimmingCharacters(in: .whitespaces) {
+                potentialInitParam = name.canBeInitParam(type: vtype, isStatic: isStatic)
                 typeName = vtype
-                potentialInitParam = !isStatic &&
-                    !vtype.hasSuffix("?") &&
-                    !name.hasPrefix(.underlyingVarPrefix) &&
-                    !name.hasSuffix(.closureVarSuffix) &&
-                    !name.hasSuffix(.callCountSuffix) &&
-                    !name.hasSuffix(.subjectSuffix) &&
-                    vtype != .unknownVal
             }
             
             let varmodel = VariableModel(name: name,
@@ -509,7 +503,7 @@ extension FunctionParameterSyntax {
 }
 
 extension AssociatedtypeDeclSyntax {
-    func model(with acl: String, overrides: [String: String]?, processed: Bool) -> Model {
+    func model(with acl: String, declType: DeclType, overrides: [String: String]?, processed: Bool) -> Model {
         // Get the inhertied type for an associated type if any
         var t = self.inheritanceClause?.typesDescription ?? ""
         t.append(self.genericWhereClause?.description ?? "")
@@ -517,6 +511,7 @@ extension AssociatedtypeDeclSyntax {
         return TypeAliasModel(name: self.identifier.text,
                               typeName: t,
                               acl: acl,
+                              encloserType: declType,
                               overrideTypes: overrides,
                               offset: self.offset,
                               length: self.length,
@@ -527,10 +522,11 @@ extension AssociatedtypeDeclSyntax {
 
 
 extension TypealiasDeclSyntax {
-    func model(with acl: String, overrides: [String: String]?, processed: Bool) -> Model {
+    func model(with acl: String, declType: DeclType, overrides: [String: String]?, processed: Bool) -> Model {
         return TypeAliasModel(name: self.identifier.text,
                               typeName: self.initializer?.value.description ?? "",
                               acl: acl,
+                              encloserType: declType,
                               overrideTypes: overrides,
                               offset: self.offset,
                               length: self.length,
@@ -562,8 +558,6 @@ final class EntityVisitor: SyntaxVisitor {
     }
     
     func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
-        return .visitChildren
-        
         if node.name.hasSuffix("Mock") {
             // this mock class node must be public else wouldn't have compiled before
             if let ent = Entity.node(with: node, isPrivate: node.isPrivate, isFinal: false, metadata: nil, processed: true) {

@@ -308,13 +308,7 @@ extension Structure: EntityNode {
     }
     
     var canBeInitParam: Bool {
-        return isInstanceVariable &&
-            isTypeNonOptional &&
-            !name.hasPrefix(.underlyingVarPrefix) &&
-            !name.hasSuffix(.closureVarSuffix) &&
-            !name.hasSuffix(.callCountSuffix) &&
-            !name.hasSuffix(.subjectSuffix) &&
-            typeName != .unknownVal
+        return name.canBeInitParam(type: typeName, isStatic: !isInstanceVariable)
     }
     
     var inheritedTypes: [String] {
@@ -393,4 +387,3 @@ extension Structure: EntityNode {
     }
     
 }
-

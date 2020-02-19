@@ -78,7 +78,7 @@ func lookupEntities(key: String,
         }
         paths.append(parentMock.filepath)
     }
-    
+
     return (models, processedModels, attributes, paths, pathToContents)
 }
 

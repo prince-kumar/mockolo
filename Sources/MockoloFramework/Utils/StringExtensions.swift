@@ -66,7 +66,6 @@ extension String {
     static let underlyingVarPrefix = "underlying"
     static let setCallCountSuffix = "SetCallCount"
     static let callCountSuffix = "CallCount"
-    static let closureVarSuffix = "Handler"
     static let initializerPrefix = "init("
     static let `escaping` = "@escaping"
     static let autoclosure = "@autoclosure"
@@ -91,6 +90,19 @@ extension String {
         return self
     }
     
+    func canBeInitParam(type: String, isStatic: Bool) -> Bool {
+        return !(isStatic || type.hasSuffix("?") || type == .unknownVal || isGenerated(type: Type(type)))
+    }
+    
+    func isGenerated(type: Type) -> Bool {
+          return self.hasPrefix(.underlyingVarPrefix) ||
+              self.hasSuffix(.setCallCountSuffix) ||
+              self.hasSuffix(.callCountSuffix) ||
+              self.hasSuffix(.subjectSuffix) ||
+              self.hasSuffix("SubjectKind") ||
+              (self.hasSuffix(.handlerSuffix) && type.isOptional)
+    }
+      
     var module: String {
         let longer = self.components(separatedBy: "/")
         let shorter = self.components(separatedBy: "/").dropFirst()

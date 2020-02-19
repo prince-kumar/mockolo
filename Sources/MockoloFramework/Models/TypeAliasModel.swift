@@ -31,12 +31,13 @@ final class TypeAliasModel: Model {
     var useDescription: Bool = false
     var modelDescription: String? = nil
     let overrideTypes: [String: String]?
+    var addAcl: Bool = false
     
     var modelType: ModelType {
         return .typeAlias
     }
 
-    init(name: String, typeName: String, acl: String?, overrideTypes: [String: String]?, offset: Int64, length: Int64, modelDescription: String?, useDescription: Bool = false, processed: Bool) {
+    init(name: String, typeName: String, acl: String?, encloserType: DeclType, overrideTypes: [String: String]?, offset: Int64, length: Int64, modelDescription: String?, useDescription: Bool = false, processed: Bool) {
         self.name = name
         self.accessControlLevelDescription = acl ?? ""
         self.offset = offset
@@ -45,6 +46,7 @@ final class TypeAliasModel: Model {
         self.modelDescription = modelDescription
         self.overrideTypes = overrideTypes
         self.useDescription = useDescription
+        self.addAcl = encloserType == .protocolType
         // If there's an override typealias value, set it to type
         if let val = overrideTypes?[self.name] {
             self.type  = Type(val)
@@ -88,7 +90,10 @@ final class TypeAliasModel: Model {
     }
     
     func render(with identifier: String, typeKeys: [String: String]? = nil) -> String? {
-        if processed || useDescription, let modelDescription = modelDescription {
+        if processed || useDescription, let modelDescription = modelDescription?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if addAcl {
+                return accessControlLevelDescription + " " + modelDescription
+            }
             return modelDescription
         }
         

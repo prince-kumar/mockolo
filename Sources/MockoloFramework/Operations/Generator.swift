@@ -64,6 +64,8 @@ public func generate(sourceDirs: [String]?,
     let t0 = CFAbsoluteTimeGetCurrent()
     log("Process input mock files...", level: .info)
     if let mockFilePaths = mockFilePaths, !mockFilePaths.isEmpty {
+        
+        log("MOCK FILES", mockFilePaths.count)
         parser.parseProcessedDecls(mockFilePaths,
                                    semaphore: sema,
                                    queue: mockgenQueue) { (elements, imports) in
@@ -81,6 +83,7 @@ public func generate(sourceDirs: [String]?,
                                     }
         }
     }
+    
     signpost_end(name: "Process input")
     let t1 = CFAbsoluteTimeGetCurrent()
     log("Took", t1-t0, level: .verbose)
@@ -117,18 +120,11 @@ public func generate(sourceDirs: [String]?,
     log("Took", t2-t1, level: .verbose)
     
     signpost_begin(name: "Generate models")
-    let typeKeyList = [parentMocks.compactMap {$0.key.components(separatedBy: "Mock").first}, annotatedProtocolMap.map {$0.key}].flatMap{$0}
-    var typeKeys = [String: String]()
-    typeKeyList.forEach { (t: String) in
-        typeKeys[t] = "\(t)Mock()"
-    }
-    
     log("Resolve inheritance and generate unique entity models...", level: .info)
     
     generateUniqueModels(protocolMap: protocolMap,
                          annotatedProtocolMap: annotatedProtocolMap,
                          inheritanceMap: parentMocks,
-                         typeKeys: typeKeys,
                          semaphore: sema,
                          queue: mockgenQueue,
                          completion: { container in
@@ -140,10 +136,17 @@ public func generate(sourceDirs: [String]?,
     let t3 = CFAbsoluteTimeGetCurrent()
     log("Took", t3-t2, level: .verbose)
     
+
     signpost_begin(name: "Render models")
+//    let typeKeyList = [parentMocks.filter{$0.value.hasBlankInit}.compactMap {$0.key.components(separatedBy: "Mock").first}, annotatedProtocolMap.filter{$0.value.hasBlankInit}.map {$0.key}].flatMap{$0}
+//    var typeKeys = [String: String]()
+//    typeKeyList.forEach { (t: String) in
+//        typeKeys[t] = "\(t)Mock()"
+//    }
+    
     log("Render models with templates...", level: .info)
     renderTemplates(entities: resolvedEntities,
-                    typeKeys: typeKeys,
+                    typeKeys: nil,
                     semaphore: sema,
                     queue: mockgenQueue,
                     completion: { (mockString: String, offset: Int64) in

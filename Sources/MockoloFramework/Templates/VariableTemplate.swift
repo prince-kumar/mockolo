@@ -31,7 +31,6 @@ func applyVariableTemplate(name: String,
     if underlyingVarDefaultVal.isEmpty {
         underlyingType = type.underlyingType
     }
-    let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
     let setCallCountStmt = //staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" :
                             "\(underlyingSetCallCount) += 1"
 
@@ -41,12 +40,29 @@ func applyVariableTemplate(name: String,
         acl = acl + " "
     }
 
-    let template = """
+    let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
+    let assignVal = underlyingVarDefaultVal.isEmpty ? "" : "= \(underlyingVarDefaultVal)"
     
-    \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
-    \(staticStr)var \(underlyingName): \(underlyingType) \(underlyingVarDefaultVal.isEmpty ? "" : "= \(underlyingVarDefaultVal)")
-    \(acl)\(staticStr)\(overrideStr)var \(name): \(type.typeName) { didSet { \(setCallCountStmt) } }
-"""
+    var template = ""
+    if !staticKind.isEmpty ||  underlyingVarDefaultVal.isEmpty {
+            template = """
+            \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
+            \(staticStr)var \(underlyingName): \(underlyingType) \(assignVal)
+            \(acl)\(staticStr)\(overrideStr)var \(name): \(type.typeName) {
+                get { return \(underlyingName) }
+                set {
+                    \(setCallCountStmt)
+                    \(underlyingName) = newValue
+                }
+            }
+        """
+    } else {
+        template = """
+            \(acl)var \(underlyingSetCallCount) = 0
+            \(acl)\(overrideStr)var \(name): \(type.typeName) \(assignVal) { didSet { \(setCallCountStmt) } }
+        """
+    }
+
     return template
 }
 
@@ -72,18 +88,30 @@ func applyRxVariableTemplate(name: String,
 //        let underlyingObservableName = "\(name)\(String.rx)\(String.subjectSuffix)"
 //        let underlyingObservableType = typeName[typeName.startIndex..<typeName.index(after: lastIdx)]
         let acl = accessControlLevelDescription.isEmpty ? "" : accessControlLevelDescription + " "
-        let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
         let setCallCountStmt = //staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" :
                                 "\(underlyingSetCallCount) += 1"
 
         let overrideStr = shouldOverride ? "\(String.override) " : ""
+        var template = ""
+
+        if staticKind.isEmpty {
+            template = """
+                \(acl)var \(underlyingSetCallCount) = 0
+                \(acl)var \(publishSubjectName) = \(publishSubjectType)() { didSet { \(setCallCountStmt) } }
+                \(acl)\(overrideStr)var \(name): \(typeName) = \(publishSubjectType)() { didSet { if let val = \(name) as? \(publishSubjectType) { \(publishSubjectName) =  val } } }
+            """
+            
+        } else {
+                template = """
+                \(acl)\(staticKind) var \(underlyingSetCallCount) = 0
+                \(acl)\(staticKind) var \(publishSubjectName) = \(publishSubjectType)() { didSet { \(setCallCountStmt) } }
+                \(acl)\(staticKind) \(overrideStr)var \(name): \(typeName) = \(publishSubjectType)() {
+                    get { return \(publishSubjectName) }
+                    set { if let val = newValue as? \(publishSubjectType) { \(publishSubjectName) = val } }
+                }
+            """
+        }
         
-        let template = """
-        
-        \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
-        \(acl)\(staticStr)var \(publishSubjectName) = \(publishSubjectType)() { didSet { \(setCallCountStmt) } }
-        \(acl)\(staticStr)\(overrideStr)var \(name): \(typeName) { didSet { \(publishSubjectName) = \(name) } }
-    """
         return template
     }
     return nil
