@@ -47,13 +47,7 @@ func applyMethodTemplate(name: String,
                 \(param.name): \(param.name.safeName)
                 """
             }.joined(separator: ", ")
-            
-//            template = """
-//                \(modifier)\(acl)init\(genericTypesStr)(\(paramDeclsStr)) {
-//                    super.init(\(paramsList))
-//                    \(String.doneInit) = true
-//                }
-//            """
+
             template = """
                 \(modifier)\(acl)init\(genericTypesStr)(\(paramDeclsStr)) {
                     super.init(\(paramsList))
@@ -69,12 +63,6 @@ func applyMethodTemplate(name: String,
                 """
             }.joined(separator: "\n")
             
-//            template = """
-//                \(reqModifier)\(acl)init\(genericTypesStr)(\(paramDeclsStr)) {
-//                    \(paramsAssign)
-//                    \(String.doneInit) = true
-//                }
-//            """
             template = """
                 \(reqModifier)\(acl)init\(genericTypesStr)(\(paramDeclsStr)) {
                     \(paramsAssign)

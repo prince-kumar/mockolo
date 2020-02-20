@@ -59,6 +59,7 @@ extension String {
     static let `convenience` = "convenience"
     static let closureArrow = "->"
     static let typealiasColon = "typealias:"
+    static let rxColon = "rx:"
     static let `typealias` = "typealias"
     static let annotationArgDelimiter = ";"
     static let rxReplaySubject = "RxSwift.ReplaySubject"
@@ -92,7 +93,7 @@ extension String {
     }
     
     func canBeInitParam(type: String, isStatic: Bool) -> Bool {
-        return !(isStatic || type.hasSuffix("?") || type == .unknownVal || isGenerated(type: Type(type)))
+        return !(isStatic || type == .unknownVal || (type.hasSuffix("?") && type.contains(String.closureArrow)) ||  isGenerated(type: Type(type)))
     }
     
     func isGenerated(type: Type) -> Bool {

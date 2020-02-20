@@ -1,12 +1,90 @@
 import MockoloFramework
 
-let rxVar =
+
+let rxVarInherited =
 """
+/// \(String.mockAnnotation)(rx: all = BehaviorSubject)
+public protocol X {
+    var myKey: Observable<SomeKey?> { get }
+}
+
 /// \(String.mockAnnotation)
+public protocol Y: X {
+    func update(with key: SomeKey)
+}
+"""
+
+let rxVarInheritedMock = """
+public class XMock: X {
+    
+    private var _doneInit = false
+    
+    public init() { _doneInit = true }
+    public init(myKey: Observable<SomeKey?>) {
+        self.myKey = myKey
+        _doneInit = true
+    }
+    public var myKeySubjectSetCallCount = 0
+    public var myKeyBehaviorSubject: BehaviorSubject<SomeKey?>! { didSet { if _doneInit { myKeySubjectSetCallCount += 1 } } }
+    public var myKey: Observable<SomeKey?> {
+        get { return myKeyBehaviorSubject }
+        set { if let val = newValue as? BehaviorSubject<SomeKey?> { myKeyBehaviorSubject = val } }
+    }
+}
+
+public class YMock: Y {
+    
+    private var _doneInit = false
+    
+    public init() { _doneInit = true }
+    public init(myKey: Observable<SomeKey?> = PublishSubject<SomeKey?>()) {
+        self.myKey = myKey
+        _doneInit = true
+    }
+    public var myKeySubjectSetCallCount = 0
+    public var myKeyBehaviorSubject: BehaviorSubject<SomeKey?>! { didSet { if _doneInit { myKeySubjectSetCallCount += 1 } } }
+    public var myKey: Observable<SomeKey?> {
+        get { return myKeyBehaviorSubject }
+        set { if let val = newValue as? BehaviorSubject<SomeKey?> { myKeyBehaviorSubject = val } }
+    }
+    public var updateCallCount = 0
+    public var updateHandler: ((SomeKey) -> ())?
+    public func update(with key: SomeKey)  {
+        updateCallCount += 1
+        
+        if let updateHandler = updateHandler {
+            updateHandler(key)
+        }
+        
+    }
+}
+"""
+
+let rxVarBehavior =
+"""
+/// \(String.mockAnnotation)(rx: all = BehaviorSubject)
 protocol RxVar {
 var nameStream: Observable<String> { get }
 }
 """
+
+let rxVarBehaviorMock =
+"""
+/// \(String.mockAnnotation)(rx: behavior)
+protocol RxVar {
+var nameStream: Observable<String> { get }
+}
+"""
+
+
+let rxVar =
+"""
+/// \(String.mockAnnotation)
+protocol RxVar {
+coreLocation: RxSwift.Observable<UBCoreLocation?>
+}
+"""
+//var var nameStream: Observable<String> { get }
 
 let rxVarMock =
 """

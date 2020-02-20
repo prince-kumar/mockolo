@@ -38,7 +38,6 @@ func applyVariableTemplate(name: String,
         acl = acl + " "
     }
 
-    let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
     let assignVal = underlyingVarDefaultVal.isEmpty ? "" : "= \(underlyingVarDefaultVal)"
     var setCallCountStmt = "\(underlyingSetCallCount) += 1"
 
@@ -47,6 +46,9 @@ func applyVariableTemplate(name: String,
         if staticKind.isEmpty {
             setCallCountStmt = "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }"
         }
+
+        let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
+
         template = """
             \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
             \(staticStr)var \(underlyingName): \(underlyingType) \(assignVal)
@@ -70,6 +72,7 @@ func applyVariableTemplate(name: String,
 
 func applyRxVariableTemplate(name: String,
                              type: Type,
+                             overrideTypes: [String: String]?,
                              typeKeys: [String: String]?,
                              staticKind: String,
                              shouldOverride: Bool,
@@ -77,43 +80,47 @@ func applyRxVariableTemplate(name: String,
     let typeName = type.typeName
     if let range = typeName.range(of: String.observableVarPrefix), let lastIdx = typeName.lastIndex(of: ">") {
         let typeParamStr = typeName[range.upperBound..<lastIdx]
-        
-        let underlyingSubjectName = "\(name)\(String.subjectSuffix)"
-//        let whichSubject = "\(underlyingSubjectName)Kind"
-        let underlyingSetCallCount = "\(underlyingSubjectName)\(String.setCallCountSuffix)"
-        let publishSubjectName = underlyingSubjectName
-        let publishSubjectType = "\(String.publishSubject)<\(typeParamStr)>"
-//        let behaviorSubjectName = "\(name)\(String.behaviorSubject)"
-//        let behaviorSubjectType = "\(String.behaviorSubject)<\(typeParamStr)>"
-//        let replaySubjectName = "\(name)\(String.replaySubject)"
-//        let replaySubjectType = "\(String.replaySubject)<\(typeParamStr)>"
-//        let underlyingObservableName = "\(name)\(String.rx)\(String.subjectSuffix)"
-//        let underlyingObservableType = typeName[typeName.startIndex..<typeName.index(after: lastIdx)]
-        let acl = accessControlLevelDescription.isEmpty ? "" : accessControlLevelDescription + " "
-        let setCallCountStmt = //staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" :
-                                "\(underlyingSetCallCount) += 1"
 
-        let overrideStr = shouldOverride ? "\(String.override) " : ""
-        var template = ""
+        var subjectKind = ""
+        var underlyingSubjectType = ""
+        if let overrideTypes  = overrideTypes {
+            if let val = overrideTypes[name] {
+                subjectKind = val
+            } else if let val = overrideTypes["all"] {
+                subjectKind = val
+            }
+        }
+ 
+        if subjectKind.isEmpty {
+            subjectKind = String.publishSubject
+        }
+        underlyingSubjectType = "\(subjectKind)<\(typeParamStr)>"
 
-        if staticKind.isEmpty {
-            template = """
-                \(acl)var \(underlyingSetCallCount) = 0
-                \(acl)var \(publishSubjectName) = \(publishSubjectType)() { didSet { \(setCallCountStmt) } }
-                \(acl)\(overrideStr)var \(name): \(typeName) = \(publishSubjectType)() { didSet { if let val = \(name) as? \(publishSubjectType) { \(publishSubjectName) =  val } } }
-            """
-            
-        } else {
-                template = """
-                \(acl)\(staticKind) var \(underlyingSetCallCount) = 0
-                \(acl)\(staticKind) var \(publishSubjectName) = \(publishSubjectType)() { didSet { \(setCallCountStmt) } }
-                \(acl)\(staticKind) \(overrideStr)var \(name): \(typeName) = \(publishSubjectType)() {
-                    get { return \(publishSubjectName) }
-                    set { if let val = newValue as? \(publishSubjectType) { \(publishSubjectName) = val } }
-                }
-            """
+        var underlyingSubjectTypeDefaultVal = ""
+        if subjectKind == String.publishSubject {
+            underlyingSubjectTypeDefaultVal = "\(underlyingSubjectType)()"
+        } else if subjectKind == String.replaySubject {
+            underlyingSubjectTypeDefaultVal = "\(underlyingSubjectType).create(bufferSize: 1)"
         }
         
+        let underlyingSubjectName = "\(name)\(String.subjectSuffix)"
+        let underlyingSetCallCount = "\(underlyingSubjectName)\(String.setCallCountSuffix)"
+        let defaultValAssignStr = underlyingSubjectTypeDefaultVal.isEmpty ? ": \(underlyingSubjectType)!" : " = \(underlyingSubjectTypeDefaultVal)"
+
+        let acl = accessControlLevelDescription.isEmpty ? "" : accessControlLevelDescription + " "
+        let overrideStr = shouldOverride ? "\(String.override) " : ""
+        let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
+        let incrementCallCount = "\(underlyingSetCallCount) += 1"
+        let setCallCountStmt = staticKind.isEmpty ? "if \(String.doneInit) { \(incrementCallCount) }" : incrementCallCount
+        let template = """
+                \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
+                \(acl)\(staticStr)var \(underlyingSubjectName)\(defaultValAssignStr) { didSet { \(setCallCountStmt) } }
+                \(acl)\(staticStr)\(overrideStr)var \(name): \(typeName) {
+                    get { return \(underlyingSubjectName) }
+                    set { if let val = newValue as? \(underlyingSubjectType) { \(underlyingSubjectName) = val } }
+                }
+            """
+
         return template
     }
     return nil

@@ -28,7 +28,8 @@ final class ClassModel: Model {
     let typealiasWhitelist: [String: [String]]?
     let initParamCandidates: [Model]
     let declaredInits: [MethodModel]
-           
+    let overrides: [String: String]?
+
     var modelType: ModelType {
         return .class
     }
@@ -38,6 +39,7 @@ final class ClassModel: Model {
          declType: DeclType,
          attributes: [String],
          offset: Int64,
+         overrides: [String: String]?,
          typealiasWhitelist: [String: [String]]?,
          initParamCandidates: [Model],
          declaredInits: [MethodModel],
@@ -49,6 +51,7 @@ final class ClassModel: Model {
         self.entities = entities
         self.declaredInits = declaredInits
         self.initParamCandidates = initParamCandidates
+        self.overrides = overrides
         self.offset = offset
         self.attribute = Set(attributes.filter {$0.contains(String.available)}).joined(separator: " ")
         self.accessControlLevelDescription = acl.isEmpty ? "" : acl + " "
@@ -56,6 +59,6 @@ final class ClassModel: Model {
     }
     
     func render(with identifier: String, typeKeys: [String: String]? = nil) -> String? {
-        return applyClassTemplate(name: name, identifier: self.identifier, typeKeys: typeKeys, accessControlLevelDescription: accessControlLevelDescription, attribute: attribute, declType: declType, typealiasWhitelist: typealiasWhitelist, initParamCandidates: initParamCandidates, declaredInits: declaredInits, entities: entities)
+        return applyClassTemplate(name: name, identifier: self.identifier, typeKeys: typeKeys, accessControlLevelDescription: accessControlLevelDescription, attribute: attribute, declType: declType, overrides: overrides, typealiasWhitelist: typealiasWhitelist, initParamCandidates: initParamCandidates, declaredInits: declaredInits, entities: entities)
     }
 }

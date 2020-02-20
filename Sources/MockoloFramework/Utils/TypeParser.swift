@@ -303,9 +303,9 @@ public struct Type {
     
     
     /// Parses a type string containing (nested) tuples or brackets and returns a default value for each type component
-    func defaultVal(with typeKeys: [String: String]? = nil, isInitParam: Bool = false) -> String? {
+    func defaultVal(with typeKeys: [String: String]? = nil, overrides: [String: String]? = nil, overrideKey: String = "", isInitParam: Bool = false) -> String? {
         let arg = typeName
-        if let val = parseDefaultVal(isInitParam: isInitParam) {
+        if let val = parseDefaultVal(isInitParam: isInitParam, overrides: overrides, overrideKey: overrideKey) {
             return val
         }
         
@@ -315,7 +315,29 @@ public struct Type {
         return nil
     }
     
-    func defaultSingularVal(isInitParam: Bool = false) -> String? {
+    private func replaceWithOverride(_ current: String, in argType: String, overrides: [String: String]?, overrideKey: String) -> String? {
+        var typeParam = argType.dropFirst(current.count)
+        if typeParam.hasSuffix("?") || typeParam.hasSuffix("!") {
+            typeParam.removeLast()
+        }
+        if let overrides = overrides, (overrides[overrideKey] != nil || overrides["all"] != nil ) {
+            //                var ret = ""
+            //                if let overrideType = overrides[overrideKey] {
+            //                    ret = overrideType
+            //                } else if let overrideType = overrides["all"] {
+            //                    ret = overrideType
+            //                }
+            //
+            //                if !ret.isEmpty {
+            //                    ret = ret + "<" + typeParam
+            //                    return ret
+            //                }
+            return nil
+        }
+        return "\(String.publishSubject)<\(typeParam)()"
+    }
+    
+    func defaultSingularVal(isInitParam: Bool = false, overrides: [String: String]? = nil, overrideKey: String = "") -> String? {
         let arg = self
         
         if arg.isOptional {
@@ -324,11 +346,23 @@ public struct Type {
         
         if arg.isValidBracketed {
             if arg.typeName.hasPrefix(String.observableVarPrefix) {
-                return isInitParam ? "\(String.publishSubject)()" : String.observableEmpty
+                if isInitParam {
+                    if let newType = replaceWithOverride(String.observableVarPrefix, in: arg.typeName, overrides: overrides, overrideKey: overrideKey) {
+                        return newType
+                    }
+                    return nil
+                }
+                return String.observableEmpty
             }
             
             if arg.typeName.hasPrefix(String.rxObservableVarPrefix) {
-                return isInitParam ? "\(String.rxPublishSubject)()" : String.rxObservableEmpty
+                if isInitParam {
+                    if let newType = replaceWithOverride(String.rxObservableVarPrefix, in: arg.typeName, overrides: overrides, overrideKey: overrideKey) {
+                        return newType
+                    }
+                    return nil
+                }
+                return String.rxObservableEmpty
             }
             
             if let idx = arg.typeName.firstIndex(of: "<") {
@@ -387,10 +421,10 @@ public struct Type {
     }
     
     
-    private func parseDefaultVal(isInitParam: Bool) -> String? {
+    private func parseDefaultVal(isInitParam: Bool, overrides: [String: String]?, overrideKey: String = "") -> String? {
         let arg = self
         
-        if let val = defaultSingularVal(isInitParam: isInitParam) {
+        if let val = defaultSingularVal(isInitParam: isInitParam, overrides: overrides, overrideKey: overrideKey) {
             return val
         }
         
@@ -408,7 +442,7 @@ public struct Type {
             if sub == "," || sub == ":" || sub == "(" || sub == ")" || sub == "=" || sub == " " || sub == "" {
                 vals.append(sub)
             } else {
-                if let val = Type(sub).defaultSingularVal(isInitParam: isInitParam) {
+                if let val = Type(sub).defaultSingularVal(isInitParam: isInitParam, overrides: overrides) {
                     vals.append(val)
                 } else {
                     return nil

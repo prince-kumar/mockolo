@@ -149,7 +149,7 @@ extension MemberDeclListItemSyntax {
         if let varMember = self.decl as? VariableDeclSyntax {
             if validateMember(varMember.modifiers, declType, processed: processed) {
                 let acl = memberAcl(varMember.modifiers, encloserAcl, declType)
-                if let item = varMember.models(with: acl, declType: declType, processed: processed).first {
+                if let item = varMember.models(with: acl, declType: declType, overrides: overrides, processed: processed).first {
                     return (item, varMember.attributes?.trimmedDescription, false)
                 }
             }
@@ -344,7 +344,7 @@ extension ClassDeclSyntax: EntityNode {
 }
 
 extension VariableDeclSyntax {
-    func models(with acl: String, declType: DeclType, processed: Bool) -> [Model] {
+    func models(with acl: String, declType: DeclType, overrides: [String: String]?, processed: Bool) -> [Model] {
         // Detect whether it's static
         var isStatic = false
         if let modifiers = self.modifiers {
@@ -371,6 +371,7 @@ extension VariableDeclSyntax {
                                          canBeInitParam: potentialInitParam,
                                          offset: v.offset,
                                          length: v.length,
+                                         overrideTypes: overrides,
                                          modelDescription: self.description,
                                          processed: processed)
             return varmodel
@@ -615,7 +616,7 @@ extension Trivia {
     // of typealias decls for T and U.
     private func metadata(with annotation: String, in val: String) -> AnnotationMetadata? {
         if val.contains(annotation) {
-            var aliasMap: [String: String]?
+            var argsMap: [String: String]?
             let comps = val.components(separatedBy: annotation)
             if var last = comps.last, !last.isEmpty {
                 if last.hasPrefix("(") {
@@ -624,21 +625,35 @@ extension Trivia {
                 if last.hasSuffix(")") {
                     last.removeLast()
                 }
-                if let aliaseArg = last.components(separatedBy: String.typealiasColon).last, !aliaseArg.isEmpty {
-                    let aliases = aliaseArg.components(separatedBy: String.annotationArgDelimiter)
-                    aliasMap = [String: String]()
-                    aliases.forEach { (item: String) in
-                        let keyVal = item.components(separatedBy: "=").map{$0.trimmingCharacters(in: CharacterSet.whitespaces)}
-                        if let k = keyVal.first, let v = keyVal.last {
-                            aliasMap?[k] = v
-                        }
+                if let args = last.components(separatedBy: String.typealiasColon).last, !args.isEmpty {
+                    let ret = parseAnnotationArguments(in: args)
+                    argsMap = ret
+                }
+                
+                if let args = last.components(separatedBy: String.rxColon).last, !args.isEmpty {
+                    let ret = parseAnnotationArguments(in: args)
+                    for (k, v) in ret {
+                        argsMap?[k] = v
                     }
                 }
             }
-            return AnnotationMetadata(typealiases: aliasMap)
+            return AnnotationMetadata(overrides: argsMap)
         }
         return nil
     }
+    
+    private func parseAnnotationArguments(in argstr: String) -> [String: String] {
+        let args = argstr.components(separatedBy: String.annotationArgDelimiter)
+        var argsMap = [String: String]()
+        args.forEach { (item: String) in
+            let keyVal = item.components(separatedBy: "=").map{$0.trimmingCharacters(in: CharacterSet.whitespaces)}
+            if let k = keyVal.first, let v = keyVal.last {
+                argsMap[k] = v
+            }
+        }
+        return argsMap
+    }
+    
     
     // Looks up an annotation (e.g. /// @mockable) and its arguments if any.
     // See metadata(with:, in:) for more info on the annotation arguments.

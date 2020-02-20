@@ -14,7 +14,8 @@ final class VariableModel: Model {
     var filePath: String = ""
     var isStatic = false
     var shouldOverride = false
-    
+    var overrideTypes: [String: String]?
+
     var modelDescription: String? = nil
     var modelType: ModelType {
         return .variable
@@ -36,6 +37,7 @@ final class VariableModel: Model {
          canBeInitParam: Bool,
          offset: Int64,
          length: Int64,
+         overrideTypes: [String: String]?,
          modelDescription: String?,
          processed: Bool) {
 
@@ -47,13 +49,13 @@ final class VariableModel: Model {
         self.shouldOverride = encloserType == .classType
         self.canBeInitParam = canBeInitParam
         self.processed = processed
-        
+        self.overrideTypes = overrideTypes
         self.accessControlLevelDescription = acl ?? ""
         self.attributes = nil
         self.modelDescription = modelDescription
     }
     
-    init(_ ast: Structure, encloserType: DeclType, filepath: String, data: Data, processed: Bool) {
+    init(_ ast: Structure, encloserType: DeclType, filepath: String, data: Data, overrideTypes: [String: String]?, processed: Bool) {
         name = ast.name
         type = Type(ast.typeName)
         offset = ast.range.offset
@@ -64,6 +66,7 @@ final class VariableModel: Model {
         accessControlLevelDescription = ast.accessControlLevelDescription
         attributes = ast.hasAvailableAttribute ? ast.extractAttributes(data, filterOn: SwiftDeclarationAttributeKind.available.rawValue) : nil
         self.processed = processed
+        self.overrideTypes = overrideTypes
         self.data = data
         self.filePath = filepath
     }
@@ -103,6 +106,7 @@ final class VariableModel: Model {
 
         if let rxVar = applyRxVariableTemplate(name: identifier,
                                                type: type,
+                                               overrideTypes: overrideTypes,
                                                typeKeys: typeKeys,
                                                staticKind: staticKind,
                                                shouldOverride: shouldOverride,

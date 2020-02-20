@@ -41,15 +41,15 @@ struct ResolvedEntity {
         return sortedInitVars(in: uniqueModels.map{$0.1})
     }
     
-    func needValsForInitParams(with typeKeys: [String: String]?) -> Bool {
-        let paramsWithNoDefaultVals = initParamCandidates.filter { $0.type.defaultVal(with: typeKeys, isInitParam: true) == nil }
-        let ret = !paramsWithNoDefaultVals.isEmpty
-        return ret
-    }
-
-    func hasBlankInit(with typeKeys: [String: String]?) -> Bool {
-        return hasDeclaredEmptyInit || !needValsForInitParams(with: typeKeys)
-    }
+//    func needValsForInitParams(with typeKeys: [String: String]?) -> Bool {
+//        let paramsWithNoDefaultVals = initParamCandidates.filter { $0.type.defaultVal(with: typeKeys, isInitParam: true) == nil }
+//        let ret = !paramsWithNoDefaultVals.isEmpty
+//        return ret
+//    }
+//
+//    func hasBlankInit(with typeKeys: [String: String]?) -> Bool {
+//        return hasDeclaredEmptyInit || !needValsForInitParams(with: typeKeys)
+//    }
 
     /// Returns models that can be used as parameters to an initializer
     /// @param models The models (processed and unprocessed) of the current entity
@@ -75,6 +75,7 @@ struct ResolvedEntity {
                           declType: entity.entityNode.declType,
                           attributes: attributes,
                           offset: entity.entityNode.offset,
+                          overrides: entity.overrides,
                           typealiasWhitelist: typealiasWhitelist,
                           initParamCandidates: initParamCandidates,
                           declaredInits: declaredInits,
@@ -113,7 +114,7 @@ final class EntityNodeSubContainer {
 // Contains arguments to annotation
 // Ex. @mockable(typealias: T = Any; U = String; ...)
 struct AnnotationMetadata {
-    var typealiases: [String: String]?
+    var overrides: [String: String]?
 }
 
 
@@ -141,7 +142,7 @@ public final class Entity {
                           filepath: filepath,
                           data: data,
                           isAnnotated: metadata != nil,
-                          overrides: metadata?.typealiases,
+                          overrides: metadata?.overrides,
                           isProcessed: processed)
         
         return node

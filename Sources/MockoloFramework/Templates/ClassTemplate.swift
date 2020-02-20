@@ -22,12 +22,13 @@ func applyClassTemplate(name: String,
                         accessControlLevelDescription: String,
                         attribute: String,
                         declType: DeclType,
+                        overrides: [String: String]?,
                         typealiasWhitelist: [String: [String]]?,
                         initParamCandidates: [Model],
                         declaredInits: [MethodModel],
                         entities: [(String, Model)]) -> String {
     
-    let extraInits = extraInitsIfNeeded(initParamCandidates: initParamCandidates, declaredInits: declaredInits,  accessControlLevelDescription: accessControlLevelDescription, declType: declType, typeKeys: typeKeys)
+    let extraInits = extraInitsIfNeeded(initParamCandidates: initParamCandidates, declaredInits: declaredInits,  accessControlLevelDescription: accessControlLevelDescription, declType: declType, overrides: overrides, typeKeys: typeKeys)
     
     let renderedEntities = entities
         .compactMap { (uniqueId: String, model: Model) -> (String, Int64)? in
@@ -77,6 +78,7 @@ private func extraInitsIfNeeded(initParamCandidates: [Model],
                                 declaredInits: [MethodModel],
                                 accessControlLevelDescription: String,
                                 declType: DeclType,
+                                overrides: [String: String]?,
                                 typeKeys: [String: String]?) -> String {
     
     let declaredInitParamsPerInit = declaredInits.map { $0.params }
@@ -89,33 +91,29 @@ private func extraInitsIfNeeded(initParamCandidates: [Model],
         needParamedInit = false
     } else {
         if declType == .protocolType {
-            let needExtra1 = declaredInitParamsPerInit.isEmpty && !initParamCandidates.isEmpty
-            var needExtra2 = false
+            needParamedInit = !initParamCandidates.isEmpty
 
             let buffer = initParamCandidates.sorted(path: \.fullName, fallback: \.name)
             for paramList in declaredInitParamsPerInit {
                 let list = paramList.sorted(path: \.fullName, fallback: \.name)
                 if list.count == buffer.count {
-                    let diffs = zip(list, buffer).filter {$0.0.fullName != $0.1.fullName}
-                    if !diffs.isEmpty {
-                        needExtra2 = true
+                    let dups = zip(list, buffer).filter {$0.0.fullName == $0.1.fullName}
+                    if !dups.isEmpty {
+                        needParamedInit = false
                         break
                     }
                 }
             }
-            needParamedInit = needExtra1 || needExtra2
-            needBlankInit = needParamedInit
+            needBlankInit = true
         }
     }
 
-    var hasBlankInit = needBlankInit
     var initTemplate = ""
     if needParamedInit {
         var paramsAssign = ""
-        var paramsHaveDefaultVals = true
         let params = initParamCandidates
             .map { (element: Model) -> String in
-                if let val =  element.type.defaultVal(with: typeKeys, isInitParam: true) {
+                if let val =  element.type.defaultVal(with: typeKeys, overrides: overrides, overrideKey: element.name, isInitParam: true) {
                     return "\(element.name): \(element.type.typeName) = \(val)"
                 }
                 var prefix = ""
@@ -124,7 +122,6 @@ private func extraInitsIfNeeded(initParamCandidates: [Model],
                         prefix = String.escaping + " "
                     }
                 }
-                paramsHaveDefaultVals = false
                 return "\(element.name): \(prefix)\(element.type.typeName)"
         }
         .joined(separator: ", ")
@@ -136,18 +133,12 @@ private func extraInitsIfNeeded(initParamCandidates: [Model],
         }.joined(separator: "\n")
         
         
-        hasBlankInit = needBlankInit || paramsHaveDefaultVals
         initTemplate = """
         \(accessControlLevelDescription)init(\(params)) {
             \(paramsAssign)
             \(String.doneInit) = true
         }
         """
-//        initTemplate = """
-//        \(accessControlLevelDescription)init(\(params)) {
-//            \(paramsAssign)
-//        }
-//    """
     }
     
     let extraInitParamNames = initParamCandidates.map{$0.name}
@@ -164,10 +155,8 @@ private func extraInitsIfNeeded(initParamCandidates: [Model],
         // In case of protocol mocking, we want to provide a blank init (if not present already) for convenience,
         // where instance vars do not have to be set in init since they all have get/set (see VariableTemplate).
         blankInit = "\(accessControlLevelDescription)init() { \(String.doneInit) = true }"
-//        blankInit = "\(accessControlLevelDescription)init() { }"
     }
 
-//    let blankInitFlag = hasBlankInit ? "private let \(String.hasBlankInit) = true" : ""
     let initFlag =  "private var \(String.doneInit) = false"
     let template = """
         \(initFlag)
@@ -175,11 +164,6 @@ private func extraInitsIfNeeded(initParamCandidates: [Model],
         \(blankInit)
         \(initTemplate)
     """
-//    let template = """
-//        \(extraVarsToDecl)
-//        \(blankInit)
-//        \(initTemplate)
-//    """
 
     return template
 }
