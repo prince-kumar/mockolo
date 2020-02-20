@@ -73,7 +73,6 @@ func applyClassTemplate(name: String,
     return template
 }
 
-
 private func extraInitsIfNeeded(initParamCandidates: [Model],
                                 declaredInits: [MethodModel],
                                 accessControlLevelDescription: String,
@@ -90,7 +89,22 @@ private func extraInitsIfNeeded(initParamCandidates: [Model],
         needParamedInit = false
     } else {
         if declType == .protocolType {
-            needParamedInit = declaredInitParamsPerInit.isEmpty && !initParamCandidates.isEmpty
+            let needExtra1 = declaredInitParamsPerInit.isEmpty && !initParamCandidates.isEmpty
+            var needExtra2 = false
+
+            let buffer = initParamCandidates.sorted(path: \.fullName, fallback: \.name)
+            for paramList in declaredInitParamsPerInit {
+                let list = paramList.sorted(path: \.fullName, fallback: \.name)
+                if list.count == buffer.count {
+                    let diffs = zip(list, buffer).filter {$0.0.fullName != $0.1.fullName}
+                    if !diffs.isEmpty {
+                        needExtra2 = true
+                        break
+                    }
+                }
+            }
+            needParamedInit = needExtra1 || needExtra2
+            needBlankInit = needParamedInit
         }
     }
 
@@ -153,10 +167,9 @@ private func extraInitsIfNeeded(initParamCandidates: [Model],
 //        blankInit = "\(accessControlLevelDescription)init() { }"
     }
 
-    let blankInitFlag = hasBlankInit ? "private let \(String.hasBlankInit) = true" : ""
+//    let blankInitFlag = hasBlankInit ? "private let \(String.hasBlankInit) = true" : ""
     let initFlag =  "private var \(String.doneInit) = false"
     let template = """
-        \(blankInitFlag)
         \(initFlag)
         \(extraVarsToDecl)
         \(blankInit)

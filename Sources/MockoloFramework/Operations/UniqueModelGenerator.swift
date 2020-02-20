@@ -104,23 +104,23 @@ func generateTypeKeys(dependentTypes: [String: Entity],
     var typeKeys = [String: String]()
 
     for element in dependentTypes {
-        if element.value.entityNode.hasBlankInit {
+//        if element.value.entityNode.hasBlankInit {
             let (k, v) = mockTypeKeyVal(element.key)
             typeKeys[k] = v
-        }
+//        }
     }
 
-    let firstFiltered = resolvedEntities.filter { $0.hasBlankInit(with: typeKeys) }
-    for element in firstFiltered {
+//    let firstFiltered = resolvedEntities.filter { $0.hasBlankInit(with: typeKeys) }
+    for element in resolvedEntities {
         let (k, v) = mockTypeKeyVal(element.key)
         typeKeys[k] = v
     }
     
-    let secondFiltered = firstFiltered.filter { !$0.needValsForInitParams(with: typeKeys) }
-    for element in secondFiltered {
-        let (k, v) = mockTypeKeyVal(element.key)
-        typeKeys[k] = v
-    }
+//    let secondFiltered = firstFiltered.filter { !$0.needValsForInitParams(with: typeKeys) }
+//    for element in secondFiltered {
+//        let (k, v) = mockTypeKeyVal(element.key)
+//        typeKeys[k] = v
+//    }
     
     completion(typeKeys)
 }
