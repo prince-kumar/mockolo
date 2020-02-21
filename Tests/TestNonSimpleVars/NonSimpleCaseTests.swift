@@ -31,6 +31,13 @@ class NonSimpleVarTests: MockoloTestCase {
                dstContent: rxVarBehaviorMock,
                concurrencyLimit: nil)
     }
+    
+    
+    func testRx() {
+        verify(srcContent: rx,
+               dstContent: rxVarBehaviorMock,
+               concurrencyLimit: nil)
+    }
 
     func testVariadicFuncs() {
         verify(srcContent: variadicFunc,

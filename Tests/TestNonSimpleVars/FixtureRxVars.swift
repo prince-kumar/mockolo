@@ -60,19 +60,41 @@ public class YMock: Y {
 }
 """
 
+let rx = """
+/// \(String.mockAnnotation)(rx: blockedByAttachedRouter = BehaviorSubject)
+protocol ReactiveEMobilityRoutingInternal: EMobilityRouting {
+    var blockedByAttachedRouter: Observable<Bool> { get }
+    func embedModularMap()
+    func detachModularMap()
+    func routeToStartSteps(steps: [RealtimeEMobility.Step], providerUuid: String) -> Observable<()>
+    func routeAwayFromStartSteps() -> Observable<()>
+    func routeToPostRental(finishedRental: BookingV2) -> Observable<()>
+    func routeAwayFromPostRental() -> Observable<()>
+    func routeToIOSSettings()
+    func routeToMainStateSearch() -> Observable<()>
+    func routeToMainStateActive() -> Observable<()>
+    func routeAwayFromMainState() -> Observable<()>
+}
+
+
+"""
+
 let rxVarBehavior =
 """
-/// \(String.mockAnnotation)(rx: all = BehaviorSubject)
+/// \(String.mockAnnotation)(rx: nameStream = BehaviorSubject; some = ReplaySubject)
 protocol RxVar {
-var nameStream: Observable<String> { get }
+    var isEnabled: Observable<Bool> { get }
+    var nameStream: Observable<[EMobilitySearchVehicle]> { get }
+    var intStream: Observable<Int> { get }
 }
 """
 
 let rxVarBehaviorMock =
 """
-/// \(String.mockAnnotation)(rx: behavior)
+/// \(String.mockAnnotation)(rx: nameStream = BehaviorSubject)
 protocol RxVar {
 var nameStream: Observable<String> { get }
+    var nameStream: Observable<String> { get }
 }
 """
 

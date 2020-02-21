@@ -317,7 +317,7 @@ public struct Type {
     
     private func replaceWithOverride(_ current: String, in argType: String, overrides: [String: String]?, overrideKey: String) -> String? {
         var typeParam = argType.dropFirst(current.count)
-        if typeParam.hasSuffix("?") || typeParam.hasSuffix("!") {
+        if typeParam.hasSuffix("?") || typeParam.hasSuffix("!") || typeParam.hasSuffix(")") {
             typeParam.removeLast()
         }
         if let overrides = overrides, (overrides[overrideKey] != nil || overrides["all"] != nil ) {
@@ -442,7 +442,7 @@ public struct Type {
             if sub == "," || sub == ":" || sub == "(" || sub == ")" || sub == "=" || sub == " " || sub == "" {
                 vals.append(sub)
             } else {
-                if let val = Type(sub).defaultSingularVal(isInitParam: isInitParam, overrides: overrides) {
+                if let val = Type(sub).defaultSingularVal(isInitParam: isInitParam, overrides: overrides, overrideKey: overrideKey) {
                     vals.append(val)
                 } else {
                     return nil
