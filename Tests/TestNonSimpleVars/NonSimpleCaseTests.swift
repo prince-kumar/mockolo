@@ -14,6 +14,12 @@ class NonSimpleVarTests: MockoloTestCase {
                dstContent: nonSimpleVarsMock)
     }
     
+    func testRxVar1() {
+        verify(srcContent: rxMultiParents,
+               dstContent: rxVarMock,
+               concurrencyLimit: nil)
+    }
+
     func testRxVar() {
         verify(srcContent: rxVar,
                dstContent: rxVarMock,

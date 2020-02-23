@@ -95,12 +95,19 @@ func applyRxVariableTemplate(name: String,
     let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
     let incrementCallCount = "\(underlyingSetCallCount) += 1"
     let setCallCountStmt = staticKind.isEmpty ? "if \(String.doneInit) { \(incrementCallCount) }" : incrementCallCount
+    let fallbackName =  "\(String.underlyingVarPrefix)\(name.capitlizeFirstLetter)"
+    var fallbackType = type.typeName
+    if type.isIUO || type.isOptional {
+        fallbackType.removeLast()
+    }
+        
     let template = """
     \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
+    \(staticStr)var \(fallbackName): \(fallbackType)? { didSet { \(setCallCountStmt) } }
     \(acl)\(staticStr)var \(underlyingSubjectName)\(defaultValAssignStr) { didSet { \(setCallCountStmt) } }
     \(acl)\(staticStr)\(overrideStr)var \(name): \(type.typeName) {
-        get { return \(underlyingSubjectName) }
-        set { if let val = newValue as? \(underlyingSubjectType) { \(underlyingSubjectName) = val } }
+        get { return \(fallbackName) ?? \(underlyingSubjectName) }
+        set { if let val = newValue as? \(underlyingSubjectType) { \(underlyingSubjectName) = val } else { \(fallbackName) = newValue } }
     }
     """
 

@@ -1,5 +1,52 @@
 import MockoloFramework
 
+let rxMultiParents =
+"""
+/// \(String.mockAnnotation)
+public protocol MutableDriverTasksStream: DriverTasksStream {
+    func update(tasks: DriverTasks)
+}
+
+public protocol DriverTasksStream: TaskScopeListStream, JobTaskScopeListStream, DriverStateStream, DriverOnlineStream, DriverCompletionTasksStream, DriverJobStateStream {
+    var tasks: Observable<DriverTasks> { get }
+}
+
+/// \(String.mockAnnotation)(rx: all = ReplaySubject)
+public protocol TaskScopeListStream: AnyObject {
+    /// Observable of an array of task scopes. This observable replays the most recent array.
+    /// Emissions of this observable are guaranteed to be unique.
+    var taskScopes: Observable<[TaskScope]> { get }
+}
+
+/// \(String.mockAnnotation)(rx: all = ReplaySubject)
+public protocol JobTaskScopeListStream: AnyObject {
+    /// Observable of an array of task scopes, filtered to only include scopes that are derived from
+    /// a job in Demand. This observable replays the most recent array. Emissions of this observable
+    /// are guaranteed to be unique.
+    var jobTaskScopes: Observable<[TaskScope]> { get }
+}
+
+/// \(String.mockAnnotation)
+public protocol DriverOnlineStream: AnyObject {
+    var driverOnline: Observable<Bool> { get }
+}
+/// \(String.mockAnnotation)
+public protocol DriverStateStream: AnyObject {
+    var driverState: Observable<DriverState> { get }
+}
+
+/// \(String.mockAnnotation)(rx: all = BehaviorSubject)
+public protocol DriverJobStateStream: AnyObject {
+    var isOnJob: Observable<Bool> { get }
+}
+
+/// \(String.mockAnnotation)(rx: all = BehaviorSubject)
+public protocol DriverCompletionTasksStream: AnyObject {
+    var completionTasks: Observable<[DriverCompletionTask]> { get }
+}
+
+"""
+
 
 let rxVarInherited =
 """

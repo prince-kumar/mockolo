@@ -306,7 +306,7 @@ public struct Type {
     func defaultVal(with typeKeys: [String: String]? = nil, overrides: [String: String]? = nil, overrideKey: String = "", isInitParam: Bool = false) -> String? {
         let (subjectType, subjectVal) = parseRxVar(overrides: overrides, overrideKey: overrideKey, isInitParam: isInitParam)
         if subjectType != nil {
-            return isInitParam ? subjectVal : String.rxObservableEmpty
+            return isInitParam ? subjectVal : (typeName.hasSuffix(String.rxObservableVarPrefix) ? String.rxObservableEmpty : String.observableEmpty)
         }
 
         if let val = parseDefaultVal(isInitParam: isInitParam, overrides: overrides, overrideKey: overrideKey) {
