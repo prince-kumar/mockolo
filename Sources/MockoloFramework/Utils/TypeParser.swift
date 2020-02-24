@@ -325,7 +325,7 @@ public struct Type {
 
             var subjectKind = ""
             var underlyingSubjectType = ""
-            if let overrideTypes  = overrides {
+            if let overrideTypes = overrides {
                 if let val = overrideTypes[overrideKey], val.hasSuffix(String.subjectSuffix) {
                     subjectKind = val
                 } else if let val = overrideTypes["all"], val.hasSuffix(String.subjectSuffix) {
