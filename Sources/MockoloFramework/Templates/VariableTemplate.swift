@@ -145,7 +145,11 @@ func applyRxVariableTemplate(name: String,
         \(acl)\(staticStr)var \(behaviorSubjectName): \(behaviorSubjectType)! { didSet { \(setCallCountStmt) } }
         \(acl)\(staticStr)var \(underlyingObservableName): \(underlyingObservableType)! { didSet { \(setCallCountStmt) } }
         \(acl)\(staticStr)\(overrideStr)var \(name): \(typeName) {
-            get { if \(whichSubject) == 0 { return \(publishSubjectName) } else if \(whichSubject) == 1 { return \(behaviorSubjectName) } else if \(whichSubject) == 2 { return \(replaySubjectName) } else { return \(underlyingObservableName) }
+            get {
+                if \(whichSubject) == 0 { return \(publishSubjectName) }
+                else if \(whichSubject) == 1 { return \(behaviorSubjectName) }
+                else if \(whichSubject) == 2 { return \(replaySubjectName) }
+                else { return \(underlyingObservableName) }
             }
             set {
                 if let val = newValue as? \(publishSubjectType) { \(whichSubject) = 0; \(publishSubjectName) = val }
