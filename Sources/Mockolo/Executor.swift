@@ -119,7 +119,7 @@ class Executor {
     ///
     /// - parameter arguments: The command line arguments to execute the command with.
     func execute(with arguments: ArgumentParser.Result) {
-        
+
 //        let xlist = "Tests Test Images Strings Mock Mocks"
 //        let root = "/Users/ellie/uber/ios/"
 //        let f1 = root + "libraries/feature/payment" //"libraries/feature/PresidioMaps/PresidioMaps/Marker/MapMarker.swift"
@@ -193,3 +193,40 @@ class Executor {
         }
     }
 }
+
+//
+//class K {}
+//class x {
+//
+//    private var done = false
+//    init() { done = true }
+//    init(arg: K) {
+//        j2 = arg
+//        done = true
+//    }
+//
+//    var count2 = 0
+//    var under2: K! {
+//        didSet{
+//            count2 += 1
+//        }
+//    }
+//
+//    var j2: K {
+//        get { return under2 }
+//        set { under2 = newValue  }
+//    }
+//
+//    static var count = 0
+//    static var under = 0 {
+//        didSet{
+//            count += 1
+//        }
+//    }
+//
+//    static var j: Int {
+//        get { return under }
+//        set { under = newValue  }
+//    }
+//
+//}

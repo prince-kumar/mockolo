@@ -77,29 +77,30 @@ func applyRxVariableTemplate(name: String,
                              staticKind: String,
                              shouldOverride: Bool,
                              accessControlLevelDescription: String) -> String? {
-    let (subjectType, subjectVal) = type.parseRxVar(overrides: overrideTypes, overrideKey: name, isInitParam: true)
-    if let underlyingSubjectType = subjectType {
-        
-        let underlyingSubjectName = "\(name)\(String.subjectSuffix)"
-        let underlyingSetCallCount = "\(underlyingSubjectName)\(String.setCallCountSuffix)"
 
-    var defaultValAssignStr = ""
-    if let underlyingSubjectTypeDefaultVal = subjectVal {
-        defaultValAssignStr = " = \(underlyingSubjectTypeDefaultVal)"
-    } else {
-        defaultValAssignStr = ": \(underlyingSubjectType)!"
-    }
+    if let overrideTypes = overrideTypes, !overrideTypes.isEmpty {
+        let (subjectType, subjectVal) = type.parseRxVar(overrides: overrideTypes, overrideKey: name, isInitParam: true)
+        if let underlyingSubjectType = subjectType {
+            let underlyingSubjectName = "\(name)\(String.subjectSuffix)"
+            let underlyingSetCallCount = "\(underlyingSubjectName)\(String.setCallCountSuffix)"
 
-    let acl = accessControlLevelDescription.isEmpty ? "" : accessControlLevelDescription + " "
-    let overrideStr = shouldOverride ? "\(String.override) " : ""
-    let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
-    let incrementCallCount = "\(underlyingSetCallCount) += 1"
-    let setCallCountStmt = staticKind.isEmpty ? "if \(String.doneInit) { \(incrementCallCount) }" : incrementCallCount
-    let fallbackName =  "\(String.underlyingVarPrefix)\(name.capitlizeFirstLetter)"
-    var fallbackType = type.typeName
-    if type.isIUO || type.isOptional {
-        fallbackType.removeLast()
-    }
+            var defaultValAssignStr = ""
+            if let underlyingSubjectTypeDefaultVal = subjectVal {
+                defaultValAssignStr = " = \(underlyingSubjectTypeDefaultVal)"
+            } else {
+                defaultValAssignStr = ": \(underlyingSubjectType)!"
+            }
+
+            let acl = accessControlLevelDescription.isEmpty ? "" : accessControlLevelDescription + " "
+            let overrideStr = shouldOverride ? "\(String.override) " : ""
+            let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
+            let incrementCallCount = "\(underlyingSetCallCount) += 1"
+            let setCallCountStmt = staticKind.isEmpty ? "if \(String.doneInit) { \(incrementCallCount) }" : incrementCallCount
+            let fallbackName =  "\(String.underlyingVarPrefix)\(name.capitlizeFirstLetter)"
+            var fallbackType = type.typeName
+            if type.isIUO || type.isOptional {
+                fallbackType.removeLast()
+            }
 
     let template = """
     \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
@@ -109,12 +110,11 @@ func applyRxVariableTemplate(name: String,
         get { return \(fallbackName) ?? \(underlyingSubjectName) }
         set { if let val = newValue as? \(underlyingSubjectType) { \(underlyingSubjectName) = val } else { \(fallbackName) = newValue } }
     }
-    """
+"""
+            return template
+        }
+    }
 
-    return template
-    } else {
-    
-    
     let typeName = type.typeName
     if let range = typeName.range(of: String.observableVarPrefix), let lastIdx = typeName.lastIndex(of: ">") {
         let typeParamStr = typeName[range.upperBound..<lastIdx]
@@ -133,16 +133,19 @@ func applyRxVariableTemplate(name: String,
         let acl = accessControlLevelDescription.isEmpty ? "" : accessControlLevelDescription + " "
         let staticStr = staticKind.isEmpty ? "" : "\(staticKind) "
         let setCallCountStmt = staticStr.isEmpty ? "if \(String.doneInit) { \(underlyingSetCallCount) += 1 }" : "\(underlyingSetCallCount) += 1"
-
         let overrideStr = shouldOverride ? "\(String.override) " : ""
-        
+
+        var behaviorSubjectRHS = ": \(behaviorSubjectType)!"
+        if let behaviorSubjectVal = Type(String(typeParamStr)).defaultSingularVal(isInitParam: true) {
+            behaviorSubjectRHS = " = \(behaviorSubjectType)(value: \(behaviorSubjectVal))"
+        }
+
         let template = """
-        
         \(staticStr)private var \(whichSubject) = 0
         \(acl)\(staticStr)var \(underlyingSetCallCount) = 0
         \(acl)\(staticStr)var \(publishSubjectName) = \(publishSubjectType)() { didSet { \(setCallCountStmt) } }
         \(acl)\(staticStr)var \(replaySubjectName) = \(replaySubjectType).create(bufferSize: 1) { didSet { \(setCallCountStmt) } }
-        \(acl)\(staticStr)var \(behaviorSubjectName): \(behaviorSubjectType)! { didSet { \(setCallCountStmt) } }
+        \(acl)\(staticStr)var \(behaviorSubjectName)\(behaviorSubjectRHS) { didSet { \(setCallCountStmt) } }
         \(acl)\(staticStr)var \(underlyingObservableName): \(underlyingObservableType)! { didSet { \(setCallCountStmt) } }
         \(acl)\(staticStr)\(overrideStr)var \(name): \(typeName) {
             get {
@@ -161,7 +164,6 @@ func applyRxVariableTemplate(name: String,
     """
         return template
     }
-    }
-    return nil
 
+    return nil
 }
