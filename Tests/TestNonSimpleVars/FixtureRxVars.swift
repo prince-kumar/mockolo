@@ -150,7 +150,7 @@ let rxVar =
 """
 /// \(String.mockAnnotation)
 protocol RxVar {
-coreLocation: RxSwift.Observable<UBCoreLocation?>
+    coreLocation: RxSwift.Observable<UBCoreLocation>
 }
 """
 //var var nameStream: Observable<String> { get }
